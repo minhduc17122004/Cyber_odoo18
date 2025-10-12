@@ -1,121 +1,283 @@
-Hướng Dẫn Cài Đặt Odoo (Có Video Hướng Dẫn Phía Dưới) (Đọc Hướng Dẫn Thật Kỹ Trước Khi Cài Đặt)
-🔹 Thông Tin Phiên Bản
-Odoo 17 & Odoo 18
-Đã tích hợp thư viện Odoo Accounting
-✅ Ưu & Nhược Điểm
-🔥 Ưu Điểm
-Dễ triển khai hơn so với cách cài đặt thủ công.
-Dễ khắc phục lỗi nếu có sự cố xảy ra.
-Dễ gỡ bỏ mà không lo mất dữ liệu như cách cài đặt truyền thống.
-Tích hợp sẵn module cần thiết, không cần cài đặt thêm.
-Tối ưu tài nguyên, chỉ chạy khi cần, không tốn tài nguyên khi tắt.
-Hỗ trợ đa nền tảng (Windows, MacOS, Linux).
-⚠️ Nhược Điểm
-Cần một ít kiến thức kỹ thuật.
-Dung lượng lớn hơn một chút (~50MB, nhưng không đáng kể so với lợi ích mang lại).
-📌 Yêu Cầu Thiết Bị (Windows & MacOS)
-🔹 Cấu Hình Tối Thiểu
-Windows
-Hệ điều hành: Windows 10 64-bit trở lên
-CPU: Hỗ trợ ảo hóa (VT-x hoặc AMD-V)
-RAM: Tối thiểu 4GB (khuyến nghị 8GB trở lên)
-Ổ cứng: Tối thiểu 20GB dung lượng trống
-Mạng: Kết nối internet ổn định để tải các container Docker
-MacOS
-Hệ điều hành: macOS 11 (Big Sur) trở lên
-CPU: Chip Intel hoặc Apple Silicon (M1, M2,...)
-RAM: Tối thiểu 4GB (khuyến nghị 8GB trở lên)
-Ổ cứng: Tối thiểu 20GB dung lượng trống
-Mạng: Kết nối internet ổn định để tải các container Docker
-🔹 Cách Kiểm Tra Cấu Hình
-Windows
-Kiểm Tra Ảo Hóa CPU
-Mở Task Manager (Ctrl + Shift + Esc)
-Chuyển sang tab Performance
-Chọn mục CPU
-Tìm mục Virtualization
-Nếu hiển thị Enabled, máy bạn hỗ trợ ảo hóa.
-Nếu hiển thị Disabled, cần bật ảo hóa trong BIOS.
-MacOS
-Kiểm Tra Dung Lượng Ổ Cứng
-Nhấn Cmd + Space, gõ "About This Mac" rồi nhấn Enter.
-Chọn tab Storage để kiểm tra dung lượng trống.
-📌 Chuẩn Bị (Dành Cho Windows & MacOS)
-🔹 Windows
-Cách 1: Cài Đặt Docker Desktop (Ưu tiên)
-Tải và cài đặt Docker Desktop.
-Cách 2: Cài Đặt Docker Qua Command Prompt
-Mở CMD (Windows + R, nhập cmd, nhấn Enter).
+# Hướng Dẫn Cài Đặt Odoo (Docker)
 
-Chạy lệnh sau để cài đặt Docker Desktop:
+> ⚠️ Đọc kỹ hướng dẫn trước khi cài đặt. Video hướng dẫn có phía dưới.
 
+---
+
+## Mục Lục
+1. [Thông Tin Phiên Bản](#thông-tin-phiên-bản)
+2. [Ưu & Nhược Điểm](#ưu--nhược-điểm)
+3. [Yêu Cầu Thiết Bị](#yêu-cầu-thiết-bị)
+4. [Kiểm Tra Cấu Hình](#kiểm-tra-cấu-hình)
+5. [Chuẩn Bị Cài Đặt](#chuẩn-bị-cài-đặt)
+6. [Cài Đặt Odoo](#cài-đặt-odoo)
+7. [Restart Odoo Khi Gặp Lỗi](#restart-odoo-khi-gặp-lỗi)
+8. [Cấu Hình Mail SMTP](#cấu-hình-mail-smtp)
+9. [Video Hướng Dẫn](#video-hướng-dẫn)
+10. [Lỗi Phổ Biến & Khắc Phục](#lỗi-phổ-biến--khắc-phục)
+
+---
+
+## Thông Tin Phiên Bản
+- Odoo 17 & Odoo 18  
+- Đã tích hợp **Odoo Accounting**
+
+---
+
+## Ưu & Nhược Điểm
+
+### Ưu Điểm
+- Dễ triển khai hơn cài đặt thủ công  
+- Dễ khắc phục lỗi, dễ gỡ bỏ mà không mất dữ liệu  
+- Tích hợp sẵn các module cần thiết  
+- Tối ưu tài nguyên: chỉ chạy khi cần  
+- Hỗ trợ đa nền tảng: Windows, MacOS, Linux  
+
+### Nhược Điểm
+- Cần một ít kiến thức kỹ thuật  
+- Dung lượng lớn hơn một chút (~50MB)  
+
+---
+
+## Yêu Cầu Thiết Bị
+
+### Windows
+- OS: Windows 10 64-bit trở lên  
+- CPU: hỗ trợ ảo hóa (VT-x hoặc AMD-V)  
+- RAM: 4GB (khuyến nghị 8GB)  
+- Ổ cứng: ≥20GB trống  
+- Mạng: kết nối internet ổn định  
+
+### MacOS
+- OS: macOS 11 (Big Sur) trở lên  
+- CPU: Intel hoặc Apple Silicon (M1, M2, …)  
+- RAM: 4GB (khuyến nghị 8GB)  
+- Ổ cứng: ≥20GB trống  
+- Mạng: kết nối internet ổn định  
+
+---
+
+## Kiểm Tra Cấu Hình
+
+### Windows
+1. Ctrl + Shift + Esc → Tab **Performance** → **CPU**  
+2. Kiểm tra **Virtualization**:  
+   - Enabled → hỗ trợ ảo hóa  
+   - Disabled → bật trong BIOS  
+
+### MacOS
+1. Cmd + Space → gõ "About This Mac" → Enter  
+2. Tab **Storage** → kiểm tra dung lượng trống  
+
+---
+
+## Chuẩn Bị Cài Đặt
+
+### Windows
+- **Cách 1 (Ưu tiên):** Cài Docker Desktop  
+- **Cách 2:** Cài Docker qua CMD:
+```bash
 winget install -e --id Docker.DockerDesktop
-Hoàn tất quá trình cài đặt.
+MacOS
+Tải Docker Desktop for Mac → chọn đúng phiên bản (Intel / Apple Silicon)
 
-🔹 MacOS
-Tải Docker Desktop for Mac và chọn đúng phiên bản (Intel Chip là dành cho các máy chạy chip Intel. Apple Silicon là dành cho các máy chạy chip M1,M2,...).
-Mở file .dmg, kéo ứng dụng Docker vào thư mục Applications.
-Mở Docker, chấp nhận điều khoản sử dụng.
-🚀 Cài Đặt Odoo 17 / Odoo 18
-Tải về phiên bản mới nhất tại Release.
-Giải nén thư mục vừa tải xuống.
-Truy cập vào thư mục đã giải nén.
-Nhấp chuột phải vào vùng trống trong thư mục, giữ Shift, chọn Open with Terminal hoặc Open with Command Prompt.
-MacOS Hướng dẫn sử dụng
-Windows
-Nhập lệnh sau để khởi chạy Odoo:
+Mở .dmg → kéo Docker vào Applications
 
+Mở Docker → chấp nhận điều khoản
+
+Cài Đặt Odoo
+Tải phiên bản mới nhất tại Release
+
+Giải nén thư mục
+
+Mở Terminal/Command Prompt tại thư mục giải nén
+
+Windows / MacOS
+bash
+Sao chép mã
 docker-compose up -d
-Quá trình cài đặt sẽ diễn ra, tốc độ phụ thuộc vào tốc độ mạng và cấu hình máy.
+Sau khi thấy dòng Created (màu xanh) → truy cập Odoo:
 
-Khi xuất hiện dòng Created (màu xanh), quá trình cài đặt đã hoàn tất.
-
-Truy cập Odoo bằng cách mở trình duyệt và nhập:
-
+arduino
+Sao chép mã
 http://localhost:8069
-Những lần sau chạy, chỉ cần bật Docker Desktop tìm dòng odoo_erp_docker và bấm ⏯️ và truy cập http://localhost:8069 trên trình duyệt Hướng dẫn sử dụng
+Lần sau: bật Docker Desktop → tìm odoo_erp_docker → bấm ⏯️ → truy cập http://localhost:8069
 
-🔄 Cách Restart Lại Odoo Nếu Gặp Lỗi (Windows & MacOS)
-Mở Command Prompt (Windows) hoặc Terminal (MacOS) trong thư mục chứa file docker-compose.yml.
-
-Dừng container:
-
+Restart Odoo Khi Gặp Lỗi
+bash
+Sao chép mã
 docker-compose down -v
-Khởi động lại container:
-
 docker-compose up -d
-Hướng dẫn sử dụng
+Chờ vài giây → truy cập lại http://localhost:8069
 
-Đợi một lúc và kiểm tra lại bằng cách truy cập:
+Cấu Hình Mail SMTP (Docker)
+Setup giống hình hướng dẫn
 
-http://localhost:8069
-Setup mail SMTP trên Odoo (Chỉ sử dụng khi chạy Docker)
-alt text
+Kiểm tra mail tại:
 
-Setup cấu hình giống trong ảnh là được
+arduino
+Sao chép mã
+http://localhost:8025
+Video Hướng Dẫn
+Windows: Xem video
 
-Sau đó truy cập vào link sau để check mail:
+MacOS: Xem video
 
-localhost:8025
-🎥 Video Hướng Dẫn
-Windows: Xem video hướng dẫn
+Lỗi Phổ Biến & Khắc Phục (Windows)
+Lỗi "Docker Engine Stopped"
+Giải pháp:
 
-MacOS (Macbook, MacPro, iMac, v.v.): Xem video hướng dẫn
-
-❌ Những Lỗi Phổ Biến (Windows) & Cách Khắc Phục
-🔹 Lỗi "Docker Engine Stopped" Khi Chạy Lần Đầu
-📌 Giải pháp:
-
-Mở Command Prompt (CMD) dưới quyền Administrator.
-
-Chạy lệnh sau:
-
+bash
+Sao chép mã
 wsl --update
 wsl --install --no-distribution
-Đợi quá trình cập hoàn tất (100%).
+Đợi 100% → khởi động lại máy → mở Docker Desktop
 
-Khởi động lại máy tính
+💡 Chúc bạn cài đặt thành công! 🚀
 
-Mở lại Docker Desktop, nếu thấy "Docker Engine starting..." thì chờ một chút để nó khởi động.
+css
+Sao chép mã
+
+---
+
+Nếu bạn muốn, mình có thể làm thêm **phiên bản README có hình minh họa, bảng so sánh cấu hình, và hướng dẫn lệnh Docker trực quan** để người dùng dễ theo dõi hơn. Bạn có muốn mình làm luôn không?
+Dưới đây là phiên bản README đã được viết lại, gọn gàng, chuẩn Markdown, có mục lục và hướng dẫn chi tiết cho Odoo Docker:
+
+markdown
+Sao chép mã
+# Hướng Dẫn Cài Đặt Odoo (Docker)
+
+> ⚠️ Đọc kỹ hướng dẫn trước khi cài đặt. Video hướng dẫn có phía dưới.
+
+---
+
+## Mục Lục
+1. [Thông Tin Phiên Bản](#thông-tin-phiên-bản)
+2. [Ưu & Nhược Điểm](#ưu--nhược-điểm)
+3. [Yêu Cầu Thiết Bị](#yêu-cầu-thiết-bị)
+4. [Kiểm Tra Cấu Hình](#kiểm-tra-cấu-hình)
+5. [Chuẩn Bị Cài Đặt](#chuẩn-bị-cài-đặt)
+6. [Cài Đặt Odoo](#cài-đặt-odoo)
+7. [Restart Odoo Khi Gặp Lỗi](#restart-odoo-khi-gặp-lỗi)
+8. [Cấu Hình Mail SMTP](#cấu-hình-mail-smtp)
+9. [Video Hướng Dẫn](#video-hướng-dẫn)
+10. [Lỗi Phổ Biến & Khắc Phục](#lỗi-phổ-biến--khắc-phục)
+
+---
+
+## Thông Tin Phiên Bản
+- Odoo 17 & Odoo 18  
+- Đã tích hợp **Odoo Accounting**
+
+---
+
+## Ưu & Nhược Điểm
+
+### Ưu Điểm
+- Dễ triển khai hơn cài đặt thủ công  
+- Dễ khắc phục lỗi và gỡ bỏ mà không mất dữ liệu  
+- Tích hợp sẵn các module cần thiết  
+- Tối ưu tài nguyên: chỉ chạy khi cần  
+- Hỗ trợ đa nền tảng: Windows, MacOS, Linux  
+
+### Nhược Điểm
+- Cần một ít kiến thức kỹ thuật  
+- Dung lượng lớn hơn một chút (~50MB)  
+
+---
+
+## Yêu Cầu Thiết Bị
+
+### Windows
+- OS: Windows 10 64-bit trở lên  
+- CPU: hỗ trợ ảo hóa (VT-x hoặc AMD-V)  
+- RAM: 4GB (khuyến nghị 8GB)  
+- Ổ cứng: ≥20GB trống  
+- Mạng: kết nối internet ổn định  
+
+### MacOS
+- OS: macOS 11 (Big Sur) trở lên  
+- CPU: Intel hoặc Apple Silicon (M1, M2, …)  
+- RAM: 4GB (khuyến nghị 8GB)  
+- Ổ cứng: ≥20GB trống  
+- Mạng: kết nối internet ổn định  
+
+---
+
+## Kiểm Tra Cấu Hình
+
+### Windows
+1. Ctrl + Shift + Esc → Tab **Performance** → **CPU**  
+2. Kiểm tra **Virtualization**:  
+   - Enabled → hỗ trợ ảo hóa  
+   - Disabled → bật trong BIOS  
+
+### MacOS
+1. Cmd + Space → gõ "About This Mac" → Enter  
+2. Tab **Storage** → kiểm tra dung lượng trống  
+
+---
+
+## Chuẩn Bị Cài Đặt
+
+### Windows
+- **Cách 1 (Ưu tiên):** Cài Docker Desktop  
+- **Cách 2:** Cài Docker qua CMD:
+```bash
+winget install -e --id Docker.DockerDesktop
+MacOS
+Tải Docker Desktop for Mac → chọn đúng phiên bản (Intel / Apple Silicon)
+
+Mở .dmg → kéo Docker vào Applications
+
+Mở Docker → chấp nhận điều khoản
+
+Cài Đặt Odoo
+Tải phiên bản mới nhất tại Release
+
+Giải nén thư mục
+
+Mở Terminal/Command Prompt tại thư mục giải nén
+
+Windows / MacOS
+bash
+Sao chép mã
+docker-compose up -d
+Sau khi thấy dòng Created (màu xanh) → truy cập Odoo:
+
+arduino
+Sao chép mã
+http://localhost:8069
+Lần sau: bật Docker Desktop → tìm odoo_erp_docker → bấm ⏯️ → truy cập http://localhost:8069
+
+Restart Odoo Khi Gặp Lỗi
+bash
+Sao chép mã
+docker-compose down -v
+docker-compose up -d
+Chờ vài giây → truy cập lại http://localhost:8069
+
+Cấu Hình Mail SMTP (Docker)
+Setup giống hình hướng dẫn
+
+Kiểm tra mail tại:
+
+arduino
+Sao chép mã
+http://localhost:8025
+Video Hướng Dẫn
+Windows: Xem video
+
+MacOS: Xem video
+
+Lỗi Phổ Biến & Khắc Phục (Windows)
+Lỗi "Docker Engine Stopped"
+Giải pháp:
+
+bash
+Sao chép mã
+wsl --update
+wsl --install --no-distribution
+Đợi 100% → khởi động lại máy → mở Docker Desktop
 
 💡 Chúc bạn cài đặt thành công! 🚀
