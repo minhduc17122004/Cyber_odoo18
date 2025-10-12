@@ -1,0 +1,23 @@
+<odoo>
+  <menuitem id="menu_cyber_root"
+            name="CyberCore ERP"
+            sequence="1"
+            web_icon="cyber_base,static/description/icon.png"/>
+
+  <!-- Submenu placeholder -->
+  <menuitem id="menu_cyber_master_data"
+            name="Dữ liệu gốc"
+            parent="menu_cyber_root"
+            sequence="10"/>
+
+  <menuitem id="menu_cyber_operations"
+            name="Vận hành"
+            parent="menu_cyber_root"
+            sequence="20"/>
+
+  <menuitem id="menu_cyber_reports"
+            name="Báo cáo"
+            parent="menu_cyber_root"
+            sequence="30"/>
+
+</odoo>

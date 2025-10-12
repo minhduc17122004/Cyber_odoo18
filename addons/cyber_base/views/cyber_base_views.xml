@@ -1,0 +1,14 @@
+<odoo>
+  <record id="view_cyber_base_info" model="ir.ui.view">
+    <field name="name">cyber.base.info.form</field>
+    <field name="model">ir.module.module</field>
+    <field name="arch" type="xml">
+      <form string="CyberCore Base Info">
+        <group>
+          <label string="CyberCore ERP - Base Module"/>
+          <p>Module nền tảng chứa menu và nhóm quyền dùng chung cho toàn hệ thống.</p>
+        </group>
+      </form>
+    </field>
+  </record>
+</odoo>
