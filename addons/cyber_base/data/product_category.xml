@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <!-- Danh mục: Máy chơi -->
+    <record id="product_category_cyber_machine" model="product.category">
+      <field name="name">Máy chơi</field>
+      <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
+    <!-- Danh mục: Đồ ăn -->
+    <record id="product_category_cyber_food" model="product.category">
+      <field name="name">Đồ ăn</field>
+      <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
+    <!-- Danh mục: Đồ uống -->
+    <record id="product_category_cyber_drink" model="product.category">
+      <field name="name">Đồ uống</field>
+      <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+  </data>
+</odoo>

@@ -1,25 +1,11 @@
-from odoo import models, fields, api
+from odoo import models, fields
 
 class CyberCustomer(models.Model):
     _inherit = "res.partner"
 
-    member_type = fields.Selection([
-        ('normal', 'Thành viên thường'),
-        ('vip', 'Thành viên VIP'),
-        ('banned', 'Cấm tài khoản'),
-    ], default='normal', string="Loại thành viên")
-
-    balance = fields.Float(string="Số dư tài khoản", default=0.0)
+    total_balance = fields.Monetary(string="Tổng số dư", currency_field="currency_id", default=0.0)
     join_date = fields.Date(string="Ngày tham gia", default=fields.Date.today)
-    total_play_time = fields.Float(string="Tổng giờ chơi (giờ)", default=0.0)
-    note = fields.Text(string="Ghi chú thêm")
-
-    def action_recharge_balance(self):
-        """Tăng số dư ảo để test"""
-        for rec in self:
-            rec.balance += 10000
-
-    def action_deduct_balance(self):
-        """Giảm số dư ảo"""
-        for rec in self:
-            rec.balance -= 5000
+    total_play_time = fields.Float(string="Tổng giờ chơi (h)", default=0.0)
+    DOB = fields.Date(string="Ngày sinh")
+    phone_num = fields.Char(string="Số điện thoại")
+    currency_id = fields.Many2one("res.currency", default=lambda self: self.env.company.currency_id.id)

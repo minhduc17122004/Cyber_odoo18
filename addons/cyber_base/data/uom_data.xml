@@ -1,0 +1,45 @@
+<odoo>
+  <data noupdate="1">
+    <!-- Custom UoM Category for Time -->
+    <record id="uom_categ_cyber_time" model="uom.category">
+      <field name="name">Time (Cyber)</field>
+    </record>
+
+    <!-- Custom UoM Category for Drinks -->
+    <record id="uom_categ_cyber_drink" model="uom.category">
+      <field name="name">Drinks (Cyber)</field>
+    </record>
+
+    <!-- Custom UoM Category for Packages -->
+    <record id="uom_categ_cyber_package" model="uom.category">
+      <field name="name">Packages (Cyber)</field>
+    </record>
+
+    <!-- Giờ (h) -->
+    <record id="uom_cyber_hour" model="uom.uom">
+      <field name="name">Giờ (h)</field>
+      <field name="category_id" ref="uom_categ_cyber_time"/>
+      <field name="uom_type">reference</field>
+      <field name="ratio">1.0</field>
+      <field name="rounding">0.01</field>
+    </record>
+
+    <!-- Ly (drink) -->
+    <record id="uom_cyber_cup" model="uom.uom">
+      <field name="name">Ly</field>
+      <field name="category_id" ref="uom_categ_cyber_drink"/>
+      <field name="uom_type">reference</field>
+      <field name="ratio">1.0</field>
+      <field name="rounding">1.0</field>
+    </record>
+
+    <!-- Gói (service pack) -->
+    <record id="uom_cyber_pack" model="uom.uom">
+      <field name="name">Gói</field>
+      <field name="category_id" ref="uom_categ_cyber_package"/>
+      <field name="uom_type">reference</field>
+      <field name="ratio">1.0</field>
+      <field name="rounding">1.0</field>
+    </record>
+  </data>
+</odoo>

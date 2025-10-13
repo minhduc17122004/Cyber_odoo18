@@ -1,0 +1,58 @@
+<odoo>
+  <!-- Thêm field vào form product.template -->
+  <record id="view_product_form_inherit_cyber" model="ir.ui.view">
+    <field name="name">product.template.form.cyber.inherit</field>
+    <field name="model">product.template</field>
+    <field name="inherit_id" ref="product.product_template_only_form_view"/>
+    <field name="arch" type="xml">
+      <xpath expr="//page[@name='general_information']" position="after">
+        <page string="CyberCore Info" name="cybercore_info">
+          <group>
+            <group string="Type">
+              <field name="is_machine"/>
+              <field name="is_cyber_service"/>
+              <field name="service_type" invisible="not is_cyber_service"/>
+            </group>
+            <group string="Machine Info" invisible="not is_machine">
+              <field name="ip_address"/>
+              <field name="location"/>
+              <field name="status"/>
+              <field name="last_maintenance"/>
+            </group>
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- Thêm cột vào list -->
+  <record id="view_product_list_inherit_cyber" model="ir.ui.view">
+    <field name="name">product.template.list.cyber.inherit</field>
+    <field name="model">product.template</field>
+    <field name="inherit_id" ref="product.product_template_tree_view"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='list_price']" position="after">
+        <field name="is_machine" optional="show"/>
+        <field name="is_cyber_service" optional="show"/>
+        <field name="status" optional="hide"/>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- Search view: filter nhanh -->
+  <record id="view_product_search_inherit_cyber" model="ir.ui.view">
+    <field name="name">product.template.search.cyber.inherit</field>
+    <field name="model">product.template</field>
+    <field name="inherit_id" ref="product.product_template_search_view"/>
+    <field name="arch" type="xml">
+      <filter name="inactive" position="after">
+        <separator/>
+        <filter name="filter_is_machine" string="Máy chơi" domain="[('is_machine','=',True)]"/>
+        <filter name="filter_is_cyber_service" string="Dịch vụ" domain="[('is_cyber_service','=',True)]"/>
+        <filter name="filter_status_available" string="Sẵn sàng" domain="[('status','=','available')]"/>
+        <filter name="filter_status_playing" string="Đang chơi" domain="[('status','=','playing')]"/>
+        <filter name="filter_status_maintenance" string="Bảo trì" domain="[('status','=','maintenance')]"/>
+      </filter>
+    </field>
+  </record>
+</odoo>
