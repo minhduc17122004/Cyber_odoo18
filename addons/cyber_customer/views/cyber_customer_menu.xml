@@ -1,0 +1,17 @@
+<odoo>
+  <menuitem id="menu_cyber_customer_root"
+            name="Khách hàng"
+            parent="cyber_base.menu_cybercore_root"
+            sequence="10"/>
+  <record id="action_cyber_customer" model="ir.actions.act_window">
+    <field name="name">Khách hàng CyberCore</field>
+    <field name="res_model">res.partner</field>
+    <field name="view_mode">tree,form</field>
+    <field name="domain">[('member_type', '!=', False)]</field>
+  </record>
+  <menuitem id="menu_cyber_customer"
+            name="Danh sách khách hàng"
+            parent="menu_cyber_customer_root"
+            action="action_cyber_customer"
+            sequence="1"/>
+</odoo>
