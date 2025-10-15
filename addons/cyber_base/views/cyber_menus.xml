@@ -1,37 +1,37 @@
 <odoo>
-  <!-- Menu gốc -->
-  <menuitem id="menu_cyber_root" name="CyberCore ERP" sequence="1"/>
+  <!-- Root Menu -->
+  <menuitem id="menu_cyber_root" name="CyberCore" sequence="1"/>
 
-  <!-- Sản phẩm Cyber -->
+  <!-- Cyber Products -->
   <record id="action_cyber_products_all" model="ir.actions.act_window">
-    <field name="name">Sản phẩm Cyber</field>
+    <field name="name">Cyber Products</field>
     <field name="res_model">product.template</field>
     <field name="view_mode">list,form</field>
     <field name="domain">['|',('is_machine','=',True),('is_cyber_service','=',True)]</field>
   </record>
-  <menuitem id="menu_cyber_products" name="Sản phẩm Cyber"
+  <menuitem id="menu_cyber_products" name="Products"
             parent="menu_cyber_root" action="action_cyber_products_all" sequence="10"
             groups="cyber_base.group_cyber_user,cyber_base.group_cyber_manager,cyber_base.group_cyber_admin"/>
 
-  <!-- Lọc nhanh: Máy -->
+  <!-- Quick Filter: Machines -->
   <record id="action_cyber_machines" model="ir.actions.act_window">
-    <field name="name">Máy chơi</field>
+    <field name="name">Gaming Machines</field>
     <field name="res_model">product.template</field>
     <field name="view_mode">list,form</field>
     <field name="domain">[('is_machine','=',True)]</field>
   </record>
-  <menuitem id="menu_cyber_machines" name="Máy chơi"
+  <menuitem id="menu_cyber_machines" name="Machines"
             parent="menu_cyber_products" action="action_cyber_machines" sequence="11"
             groups="cyber_base.group_cyber_user,cyber_base.group_cyber_manager,cyber_base.group_cyber_admin"/>
 
-  <!-- Lọc nhanh: Dịch vụ -->
+  <!-- Quick Filter: Services -->
   <record id="action_cyber_services" model="ir.actions.act_window">
-    <field name="name">Dịch vụ</field>
+    <field name="name">Services</field>
     <field name="res_model">product.template</field>
     <field name="view_mode">list,form</field>
     <field name="domain">[('is_cyber_service','=',True)]</field>
   </record>
-  <menuitem id="menu_cyber_services" name="Dịch vụ"
+  <menuitem id="menu_cyber_services" name="Services"
             parent="menu_cyber_products" action="action_cyber_services" sequence="12"
             groups="cyber_base.group_cyber_user,cyber_base.group_cyber_manager,cyber_base.group_cyber_admin"/>
 </odoo>

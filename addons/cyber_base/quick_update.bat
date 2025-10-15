@@ -1,22 +1,36 @@
 @echo off
-REM Script nhanh để update module cyber_base
+REM Quick script to update cyber_base module
 
 echo ========================================
 echo  CYBERCORE BASE - QUICK UPDATE
 echo ========================================
 echo.
 
-set /p DB_NAME="Nhập tên database: "
+set /p DB_NAME="Enter database name: "
 
 echo.
-echo [*] Đang cập nhật module...
-docker-compose run --rm web odoo -u cyber_base -d %DB_NAME% --stop-after-init
+echo [1/3] Stopping container...
+docker-compose stop web
 
 echo.
-echo [*] Khởi động lại container...
-docker-compose restart web
+echo [2/3] Updating module...
+docker-compose run --rm web odoo -u cyber_base -d %DB_NAME% --stop-after-init --log-level=info
+
+if %errorlevel% neq 0 (
+    echo.
+    echo ❌ Update failed! Check the error above.
+    echo Trying to view logs...
+    docker-compose logs --tail=50 web
+    pause
+    exit /b 1
+)
 
 echo.
-echo ✅ Hoàn thành! Module đã được cập nhật.
+echo [3/3] Starting container...
+docker-compose up -d web
+
+echo.
+echo ✅ Complete! Module has been updated.
+echo Odoo is starting at http://localhost:8069
 echo.
 pause

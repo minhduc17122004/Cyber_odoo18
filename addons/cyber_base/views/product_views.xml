@@ -1,5 +1,5 @@
 <odoo>
-  <!-- Thêm field vào form product.template -->
+  <!-- Add fields to form product.template -->
   <record id="view_product_form_inherit_cyber" model="ir.ui.view">
     <field name="name">product.template.form.cyber.inherit</field>
     <field name="model">product.template</field>
@@ -25,7 +25,7 @@
     </field>
   </record>
 
-  <!-- Thêm cột vào list -->
+  <!-- Add columns to list -->
   <record id="view_product_list_inherit_cyber" model="ir.ui.view">
     <field name="name">product.template.list.cyber.inherit</field>
     <field name="model">product.template</field>
@@ -39,7 +39,7 @@
     </field>
   </record>
 
-  <!-- Search view: filter nhanh -->
+  <!-- Search view: quick filters -->
   <record id="view_product_search_inherit_cyber" model="ir.ui.view">
     <field name="name">product.template.search.cyber.inherit</field>
     <field name="model">product.template</field>
@@ -47,11 +47,11 @@
     <field name="arch" type="xml">
       <filter name="inactive" position="after">
         <separator/>
-        <filter name="filter_is_machine" string="Máy chơi" domain="[('is_machine','=',True)]"/>
-        <filter name="filter_is_cyber_service" string="Dịch vụ" domain="[('is_cyber_service','=',True)]"/>
-        <filter name="filter_status_available" string="Sẵn sàng" domain="[('status','=','available')]"/>
-        <filter name="filter_status_playing" string="Đang chơi" domain="[('status','=','playing')]"/>
-        <filter name="filter_status_maintenance" string="Bảo trì" domain="[('status','=','maintenance')]"/>
+        <filter name="filter_is_machine" string="Machines" domain="[('is_machine','=',True)]"/>
+        <filter name="filter_is_cyber_service" string="Services" domain="[('is_cyber_service','=',True)]"/>
+        <filter name="filter_status_available" string="Available" domain="[('status','=','available')]"/>
+        <filter name="filter_status_playing" string="Playing" domain="[('status','=','playing')]"/>
+        <filter name="filter_status_maintenance" string="Maintenance" domain="[('status','=','maintenance')]"/>
       </filter>
     </field>
   </record>

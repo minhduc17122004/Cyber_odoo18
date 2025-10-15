@@ -1,5 +1,5 @@
 <odoo>
-  <data noupdate="1">
+  <data>
     <!-- Create custom module category for CyberCore -->
     <record id="module_category_cybercore" model="ir.module.category">
       <field name="name">CyberCore</field>
@@ -9,14 +9,14 @@
 
     <!-- Cyber User Group -->
     <record id="group_cyber_user" model="res.groups">
-      <field name="name">Cyber User</field>
+      <field name="name">User</field>
       <field name="category_id" ref="module_category_cybercore"/>
       <field name="comment">Basic user access - can view products and services</field>
     </record>
 
     <!-- Cyber Manager Group -->
     <record id="group_cyber_manager" model="res.groups">
-      <field name="name">Cyber Manager</field>
+      <field name="name">Manager</field>
       <field name="implied_ids" eval="[(4, ref('group_cyber_user'))]"/>
       <field name="category_id" ref="module_category_cybercore"/>
       <field name="comment">Manager access - can create, edit, and delete products and services</field>
@@ -24,7 +24,7 @@
 
     <!-- Cyber Admin Group -->
     <record id="group_cyber_admin" model="res.groups">
-      <field name="name">Cyber Administrator</field>
+      <field name="name">Administrator</field>
       <field name="implied_ids" eval="[(4, ref('group_cyber_manager'))]"/>
       <field name="category_id" ref="module_category_cybercore"/>
       <field name="comment">Full administrator access - complete control over CyberCore system</field>
