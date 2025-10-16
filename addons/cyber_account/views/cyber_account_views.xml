@@ -1,0 +1,52 @@
+<odoo>
+    <record id="view_cyber_account_tree" model="ir.ui.view">
+        <field name="name">cyber.account.tree</field>
+        <field name="model">cyber.account</field>
+        <field name="arch" type="xml">
+            <tree string="Danh sách tài khoản">
+                <field name="name"/>
+                <field name="username"/>
+                <field name="balance"/>
+                <field name="account_type"/>
+                <field name="is_active"/>
+                <field name="status"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_cyber_account_form" model="ir.ui.view">
+        <field name="name">cyber.account.form</field>
+        <field name="model">cyber.account</field>
+        <field name="arch" type="xml">
+            <form string="Chi tiết tài khoản">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="username"/>
+                        <field name="password"/>
+                        <field name="balance"/>
+                        <field name="account_type"/>
+                        <field name="is_active"/>
+                        <field name="status" readonly="1"/>
+                        <field name="phone"/>
+                        <field name="email"/>
+                        <field name="note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cyber_account_search" model="ir.ui.view">
+        <field name="name">cyber.account.search</field>
+        <field name="model">cyber.account</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="username"/>
+                <filter string="VIP" domain="[('account_type','=','vip')]"/>
+                <filter string="Hoạt động" domain="[('is_active','=',True)]"/>
+            </search>
+        </field>
+    </record>
+</odoo>

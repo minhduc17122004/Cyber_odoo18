@@ -1,0 +1,16 @@
+<odoo>
+    <menuitem id="menu_cyber_root"
+              name="Cyber Net"
+              sequence="10"/>
+
+    <menuitem id="menu_cyber_account"
+              name="Tài khoản"
+              parent="menu_cyber_root"
+              action="action_cyber_account"/>
+
+    <record id="action_cyber_account" model="ir.actions.act_window">
+        <field name="name">Quản lý tài khoản</field>
+        <field name="res_model">cyber.account</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>
