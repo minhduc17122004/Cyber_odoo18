@@ -1,34 +1,44 @@
-from odoo import models, fields, api
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models, _
 
 class CyberAccount(models.Model):
-    _name = 'cyber.account'
-    _description = 'Tài khoản khách hàng quán net'
+    _name = "cyber.account"
+    _description = "Cyber Account"
 
-    name = fields.Char(string="Tên tài khoản", required=True)
-    username = fields.Char(string="Tên đăng nhập", required=True)
-    password = fields.Char(string="Mật khẩu", required=True)
-    balance = fields.Float(string="Số dư (VNĐ)", default=0.0)
-    is_active = fields.Boolean(string="Đang hoạt động", default=True)
-    phone = fields.Char(string="Số điện thoại")
-    email = fields.Char(string="Email")
+    username = fields.Char('Username', required=True)
+    password = fields.Char('Password', required=True)
+    balance = fields.Float('Balance', digits=(10, 2), default=0.0)
+    state = fields.Boolean('Active', default=True)
+    last_session = fields.Datetime('Last Session')
 
-    # Giả sử mỗi tài khoản có thể thuộc một loại khách hàng
-    account_type = fields.Selection([
-        ('normal', 'Thường'),
-        ('vip', 'VIP'),
-    ], string="Loại tài khoản", default='normal')
+    # Relationship Fields 
+    discount_id = fields.Many2one(
+        'cyber.discount.rate', 
+        string='Discount Rate',
+        ondelete='set null'
+    )
 
-    note = fields.Text(string="Ghi chú")
     customer_id = fields.Many2one(
-        'cyber.customer', 
-        string="Khách hàng",
+        'res.partner', 
+        string='Customer',
         ondelete='cascade'
     )
 
+    # transaction_ids = fields.One2many(
+    #     'cyber.transaction',
+    #     'account_id',
+    #     string='Transactions'
+    # )
 
-    @api.depends('balance')
-    def _compute_status(self):
+    # session_ids = fields.One2many(
+    #     'cyber.session',
+    #     'account_id',
+    #     string='Sessions'
+    # )
+
+    @api.constrains('balance')
+    def _check_balance(self):
         for rec in self:
-            rec.status = 'Hết tiền' if rec.balance <= 0 else 'Còn tiền'
+            if rec.balance < 0:
+                raise ValidationError(_("Account balance cannot be negative."))
 
-    status = fields.Char(string="Trạng thái", compute="_compute_status", store=True)

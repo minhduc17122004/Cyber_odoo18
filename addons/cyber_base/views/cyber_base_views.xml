@@ -4,10 +4,14 @@
     <field name="model">ir.module.module</field>
     <field name="arch" type="xml">
       <form string="CyberCore Base Info">
-        <group>
-          <label string="CyberCore ERP - Base Module"/>
-          <p>Module nền tảng chứa menu và nhóm quyền dùng chung cho toàn hệ thống.</p>
-        </group>
+        <sheet>
+          <group>
+            <separator string="CyberCore ERP - Base Module"/>
+            <div class="o_form_label">
+              Module nền tảng chứa menu và nhóm quyền dùng chung cho toàn hệ thống.
+            </div>
+          </group>
+        </sheet>
       </form>
     </field>
   </record>
