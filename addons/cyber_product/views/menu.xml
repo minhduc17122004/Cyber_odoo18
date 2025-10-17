@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Menu gốc -->
+    <menuitem id="menu_cyber_root" name="Cyber Products" sequence="10"/>
+
+    <!-- Menu con Machines -->
+    <menuitem id="menu_machine_root"
+              name="Machines"
+              parent="menu_cyber_root"
+              sequence="1"/>
+
+    <!-- Menu con Services -->
+    <menuitem id="menu_service_root"
+              name="Services"
+              parent="menu_cyber_root"
+              sequence="2"/>
+
+    <!-- Menu action -->
+    <menuitem id="menu_machine_action"
+              name="Machines"
+              parent="menu_machine_root"
+              action="action_machine_list"
+              sequence="1"/>
+
+    <menuitem id="menu_service_action"
+              name="Services"
+              parent="menu_service_root"
+              action="action_service_list"
+              sequence="1"/>
+</odoo>
