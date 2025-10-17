@@ -22,7 +22,7 @@
                             </group>
                             <group>
                                 <field name="discount_id"/>
-                                <field name="state"/>
+                                <field name="state" widget="statusbar" statusbar_visible="active,inactive"/>
                             </group>
                         </group>
 
@@ -79,14 +79,12 @@
 
         <!-- ===== Action ===== -->
         <!-- ===== Action ===== -->
-<record id="action_cyber_account" model="ir.actions.act_window">
-    <field name="name">Cyber Account</field>
-    <field name="type">ir.actions.act_window</field>
-    <field name="res_model">cyber.account</field>
-    <field name="view_mode">list,form</field>
-</record>
-
-
+        <record id="action_cyber_account" model="ir.actions.act_window">
+            <field name="name">Cyber Account</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">cyber.account</field>
+            <field name="view_mode">list,form</field>
+        </record>
 
         <!-- ===== Menu ===== -->
         <menuitem id="menu_cyber_account_root"

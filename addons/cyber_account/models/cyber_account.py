@@ -8,7 +8,12 @@ class CyberAccount(models.Model):
     username = fields.Char('Username', required=True)
     password = fields.Char('Password', required=True)
     balance = fields.Float('Balance', digits=(10, 2), default=0.0)
-    state = fields.Boolean('Active', default=True)
+    state = fields.Selection([
+    ('active', 'Active'),
+    ('inactive', 'Inactive')
+], string='State', default='active')
+
+    # state = fields.Boolean('Active', default=True)
     last_session = fields.Datetime('Last Session')
 
     # Relationship Fields 
@@ -41,4 +46,3 @@ class CyberAccount(models.Model):
         for rec in self:
             if rec.balance < 0:
                 raise ValidationError(_("Account balance cannot be negative."))
-
