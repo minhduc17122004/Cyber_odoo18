@@ -1,0 +1,33 @@
+<odoo>
+  <!-- List view -->
+  <record id="view_cyber_customer_list" model="ir.ui.view">
+    <field name="name">cyber.customer.list</field>
+    <field name="model">res.partner</field>
+    <field name="inherit_id" ref="base.view_partner_tree"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='name']" position="after">
+        <field name="total_balance"/>
+        <field name="total_play_time"/>
+        <field name="join_date"/>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- Form view -->
+  <record id="view_cyber_customer_form" model="ir.ui.view">
+    <field name="name">cyber.customer.form</field>
+    <field name="model">res.partner</field>
+    <field name="inherit_id" ref="base.view_partner_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet" position="inside">
+        <group string="Thông tin CyberCore">
+          <field name="total_balance"/>
+          <field name="total_play_time"/>
+          <field name="join_date"/>
+          <field name="DOB"/>
+          <field name="phone_num"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+</odoo>
