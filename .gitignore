@@ -1,0 +1,34 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*$py.class
+
+# Odoo
+*.pot
+*.log
+filestore/
+sessions/
+addons/web/
+addons/web_enterprise/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+venv/
+env/
+ENV/
+
+# Docker
+docker-compose.override.yml
