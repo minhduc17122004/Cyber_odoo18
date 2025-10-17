@@ -5,6 +5,12 @@ __pycache__/
 
 # C extensions
 *.so
+# md files
+*.md
+# bat
+*.bat
+# _pycache_
+__pycache__/
 
 # Distribution / packaging
 .Python
