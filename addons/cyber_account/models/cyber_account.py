@@ -17,11 +17,11 @@ class CyberAccount(models.Model):
     last_session = fields.Datetime('Last Session')
 
     # Relationship Fields 
-    discount_id = fields.Many2one(
-        'cyber.discount.rate', 
-        string='Discount Rate',
-        ondelete='set null'
-    )
+    # discount_id = fields.Many2one(
+    #     'cyber.discount.rate', 
+    #     string='Discount Rate',
+    #     ondelete='set null'
+    # )
 
     customer_id = fields.Many2one(
         'res.partner', 
