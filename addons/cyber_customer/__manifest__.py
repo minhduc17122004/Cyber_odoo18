@@ -1,15 +1,17 @@
+# -*- coding: utf-8 -*-
 {
-    "name": "CyberCore Customer",
-    "version": "1.0",
-    "depends": ["base", "contacts", "cyber_base"],
-    "author": "CyberCore Team",
-    "summary": "Quản lý khách hàng và thành viên VIP của hệ thống CyberCore",
-    "data": [
-        "security/cyber_customer_groups.xml",
-        "security/ir.model.access.csv",
-        "views/cyber_customer_menu.xml",
-        "views/cyber_customer_view.xml",
+    'name': "Cyber Customer",
+    'summary': "Module for Cyber Customer",
+    'author': "Toan Nguyen",
+    'category': 'Uncategorized',
+    'version': '1.0.0',
+    'depends': ['base'],
+    'data': [
+        'views/views.xml',
+        'views/templates.xml',
+        'security/ir.model.access.csv',
     ],
+    "application": True,
     "installable": True,
-    "application": False,
 }
+

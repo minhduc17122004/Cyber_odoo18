@@ -1,15 +1,17 @@
 <odoo>
   <menuitem id="menu_cyber_customer_root"
             name="Khách hàng"
-            parent="cyber_base.menu_cybercore_root"
-            sequence="10"/>
+            parent="cyber_base.menu_cyber_root"
+            sequence="20"/>
+
   <record id="action_cyber_customer" model="ir.actions.act_window">
-    <field name="name">Khách hàng CyberCore</field>
+    <field name="name">Danh sách khách hàng</field>
     <field name="res_model">res.partner</field>
     <field name="view_mode">tree,form</field>
-    <field name="domain">[('member_type', '!=', False)]</field>
+    <field name="domain">[('customer_rank', '>', 0)]</field>
   </record>
-  <menuitem id="menu_cyber_customer"
+
+  <menuitem id="menu_cyber_customer_list"
             name="Danh sách khách hàng"
             parent="menu_cyber_customer_root"
             action="action_cyber_customer"

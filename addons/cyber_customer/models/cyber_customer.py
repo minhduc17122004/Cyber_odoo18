@@ -1,25 +1,20 @@
-from odoo import models, fields, api
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models
 
 class CyberCustomer(models.Model):
-    _inherit = "res.partner"
+    _name = "cyber.customer"
+    _inherits = {"res.partner": "partner_id"}   
+    _description = "Cyber Customer"
 
-    member_type = fields.Selection([
-        ('normal', 'Thành viên thường'),
-        ('vip', 'Thành viên VIP'),
-        ('banned', 'Cấm tài khoản'),
-    ], default='normal', string="Loại thành viên")
+    partner_id = fields.Many2one(
+        "res.partner", 
+        string="Partner", 
+        required=True, 
+        ondelete="cascade",
+        auto_join=True
+    )
 
-    balance = fields.Float(string="Số dư tài khoản", default=0.0)
-    join_date = fields.Date(string="Ngày tham gia", default=fields.Date.today)
-    total_play_time = fields.Float(string="Tổng giờ chơi (giờ)", default=0.0)
-    note = fields.Text(string="Ghi chú thêm")
-
-    def action_recharge_balance(self):
-        """Tăng số dư ảo để test"""
-        for rec in self:
-            rec.balance += 10000
-
-    def action_deduct_balance(self):
-        """Giảm số dư ảo"""
-        for rec in self:
-            rec.balance -= 5000
+    dob = fields.Date(string="Date of Birth")
+    join_date = fields.Date(string="Join Date", default=fields.Date.context_today)
+    total_play_time = fields.Float(string="Total Play Time (hours)", default=0.0)
+    total_balance = fields.Float(string="Total Balance", digits=(10, 2), default=0.0)
