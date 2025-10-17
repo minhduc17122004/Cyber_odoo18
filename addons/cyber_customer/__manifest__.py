@@ -1,16 +1,17 @@
+# -*- coding: utf-8 -*-
 {
-    "name": "CyberCore Customer",
-    "version": "1.0.0",
-    "summary": "Quản lý khách hàng của hệ thống CyberCore ERP",
-    "author": "CyberCore Team",
-    "license": "LGPL-3",
-    "depends": ["base", "contacts", "cyber_base"],
-    "data": [
-        "security/cyber_customer_groups.xml",
-        "security/ir.model.access.csv",
-        "views/cyber_customer_menu.xml",
-        "views/cyber_customer_views.xml",
+    'name': "Cyber Customer",
+    'summary': "Module for Cyber Customer",
+    'author': "Toan Nguyen",
+    'category': 'Uncategorized',
+    'version': '1.0.0',
+    'depends': ['base'],
+    'data': [
+        'views/views.xml',
+        'views/templates.xml',
+        'security/ir.model.access.csv',
     ],
+    "application": True,
     "installable": True,
-    "application": False,
 }
+

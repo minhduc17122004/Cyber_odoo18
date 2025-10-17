@@ -106,7 +106,7 @@ Module này là nền tảng cho:
 - `cyber_report`: Báo cáo tổng hợp
 
 ## Tác giả
-CyberCore Team
+Minh Duc
 
 ## Giấy phép
 LGPL-3

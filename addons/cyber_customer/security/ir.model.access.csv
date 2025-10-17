@@ -1,3 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_res_partner_customer_user,access_res_partner_customer_user,base.model_res_partner,cyber_customer.group_cyber_customer_user,1,1,0,0
-access_res_partner_customer_manager,access_res_partner_customer_manager,base.model_res_partner,cyber_customer.group_cyber_customer_manager,1,1,1,1
+access_cyber_customer_cyber_customer,cyber_customer.cyber_customer,model_cyber_customer,base.group_user,1,1,1,1

@@ -2,8 +2,8 @@
 {
     "name": "CyberCore Base",
     "version": "1.0.0",
-    "summary": "Nền tảng CyberCore ERP: menu, quyền, danh mục, UoM, mở rộng Product",
-    "author": "CyberCore Team",
+    "summary": "Nền tảng CyberCore : menu, quyền, danh mục, UoM, mở rộng Product",
+    "author": "Minh Duc",
     "license": "LGPL-3",
     "category": "CyberCore",
     "depends": ["base", "product", "uom"],
