@@ -2,7 +2,9 @@ from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 
 class CyberProduct(models.Model):
-    _inherit = "product.template"
+    _name = "cyber.product"
+    _inherits = {'product.template': 'product_tmpl_id'}
+    product_tmpl_id = fields.Many2one('product.template', required=True, ondelete='cascade')
 
     #Phân loại sản phẩm
     is_machine = fields.Boolean(string="Là máy dịch vụ", default=False)
@@ -20,7 +22,7 @@ class CyberProduct(models.Model):
     barcode = fields.Char(string="Mã vạch / định danh")
 
     #Service
-    service_category_id = fields.Many2one("service.category", string="Loại máy")
+    service_category_id = fields.Many2one("product.category", string="Loại máy")
     machine_status = fields.Selection([
         ('active', 'Hoạt động'),
         ('maintenance', 'Bảo trì'),
@@ -39,21 +41,22 @@ class CyberProduct(models.Model):
     #Good
     good_category_id = fields.Many2one("product.category", string="Danh mục hàng hóa")
     tax_percent = fields.Float(string="Thuế VAT (%)")
-    reorder_point = fields.Integer(string="Điểm nhập hàng lại")
     expiry_date = fields.Date(string="Ngày hết hạn")
+    good_status = fields.Selection([
+        ('available', 'Có sẵn'),
+        ('running out', 'Gần hết'),
+        ('no more', 'Hết')
+    ], string="Trạng thái linh kiện", default='available')
 
     #Component
-    component_category_id = fields.Many2one("component.category", string="Loại linh kiện")
+    component_category_id = fields.Many2one("product.category", string="Loại linh kiện")
     compatible_machine = fields.Text(string="Tương thích với máy")
-    install_date = fields.Date(string="Ngày lắp đặt")
     lifetime_hours = fields.Integer(string="Tuổi thọ (giờ)")
     component_status = fields.Selection([
         ('available', 'Có sẵn'),
-        ('in_use', 'Đang sử dụng'),
-        ('broken', 'Hỏng'),
-        ('maintenance', 'Bảo trì')
+        ('running out', 'Gần hết'),
+        ('no more', 'Hết')
     ], string="Trạng thái linh kiện", default='available')
-    last_check = fields.Date(string="Lần kiểm tra gần nhất")
 
     #Ràng buộc chọn 1/3
     @api.constrains('is_machine', 'is_good', 'is_component')
