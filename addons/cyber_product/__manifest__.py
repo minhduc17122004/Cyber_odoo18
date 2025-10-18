@@ -8,7 +8,6 @@
     'data': [
         'security/ir.model.access.csv',
         'views/product_views.xml',
-        'views/menu.xml',
     ],
     'installable': True,
     'application': True,
