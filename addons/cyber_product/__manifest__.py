@@ -8,6 +8,9 @@
     'data': [
         'security/ir.model.access.csv',
         'views/product_views.xml',
+        'views/categories_views.xml',
+        'views/uom_views.xml',
+        'views/supplier_views.xml',
     ],
     'installable': True,
     'application': True,

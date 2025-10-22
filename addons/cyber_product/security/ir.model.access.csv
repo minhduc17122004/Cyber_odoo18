@@ -1,2 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_cyber_product_user,access.cyber.product.user,model_cyber_product,,1,1,1,1
+access_cyber_uom_user,access.cyber.uom.user,model_cyber_uom,,1,1,1,1
+access_product_category_user,access.product.category.user,model_product_category,,1,1,1,1
+access_res_partner_user,access.res.partner.user,model_res_partner,,1,1,1,1

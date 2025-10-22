@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!--Service list -->
+    <!-- ========== SERVICE (MÁY CHƠI GAME) ========== -->
     <record id="view_cyber_service_list" model="ir.ui.view">
         <field name="name">cyber.service.list</field>
         <field name="model">cyber.product</field>
         <field name="arch" type="xml">
             <list string="Service (Máy chơi game)">
                 <field name="name"/>
-                <field name="location"/>
+                <field name="default_code"/>
                 <field name="ip_address"/>
                 <field name="price_per_hour"/>
                 <field name="service_category_id"/>
@@ -17,7 +17,7 @@
             </list>
         </field>
     </record>
-    <!--Service form-->
+
     <record id="view_cyber_service_form" model="ir.ui.view">
         <field name="name">cyber.service.form</field>
         <field name="model">cyber.product</field>
@@ -42,36 +42,38 @@
             </form>
         </field>
     </record>
-    <!--Service action-->
+
     <record id="action_cyber_service" model="ir.actions.act_window">
         <field name="name">Service (Máy chơi game)</field>
         <field name="res_model">cyber.product</field>
         <field name="view_mode">list,form</field>
         <field name="view_ids" eval="[
-        (5, 0, 0), 
-        (0, 0, {'view_mode': 'list', 'view_id': ref('view_cyber_service_list')}), 
-        (0, 0, {'view_mode': 'form', 'view_id': ref('view_cyber_service_form')})
+            (5,0,0),
+            (0,0,{'view_mode':'list','view_id': ref('view_cyber_service_list')}),
+            (0,0,{'view_mode':'form','view_id': ref('view_cyber_service_form')})
         ]"/>
         <field name="domain">[('is_machine', '=', True)]</field>
         <field name="context">{'default_is_machine': True}</field>
     </record>
-    <!--Goods list-->
+
+    <!-- ========== GOODS (HÀNG HÓA) ========== -->
     <record id="view_cyber_goods_list" model="ir.ui.view">
         <field name="name">cyber.goods.list</field>
         <field name="model">cyber.product</field>
         <field name="arch" type="xml">
             <list string="Goods (Hàng hóa)">
                 <field name="name"/>
+                <field name="default_code"/>
                 <field name="good_category_id"/>
                 <field name="list_price"/>
-                <field name="cost_price"/>
+                <field name="standard_price"/>
                 <field name="quantity"/>
                 <field name="expiry_date"/>
                 <field name="is_active"/>
             </list>
         </field>
     </record>
-    <!--Good form-->
+
     <record id="view_cyber_goods_form" model="ir.ui.view">
         <field name="name">cyber.goods.form</field>
         <field name="model">cyber.product</field>
@@ -83,12 +85,12 @@
                         <field name="good_category_id"/>
                         <field name="barcode"/>
                         <field name="list_price"/>
-                        <field name="cost_price"/>
+                        <field name="standard_price"/>
                         <field name="tax_percent"/>
                         <field name="quantity"/>
                         <field name="uom_id"/>
                         <field name="expiry_date"/>
-                        <field name="supplier_id"/>
+                        <field name="supplier_good_id"/>
                         <field name="good_status"/>
                         <field name="is_active"/>
                     </group>
@@ -96,26 +98,28 @@
             </form>
         </field>
     </record>
-    <!--Goods action-->
+
     <record id="action_cyber_goods" model="ir.actions.act_window">
         <field name="name">Goods (Hàng hóa)</field>
         <field name="res_model">cyber.product</field>
         <field name="view_mode">list,form</field>
         <field name="view_ids" eval="[
-        (5,0,0),
-        (0,0,{'view_mode':'list','view_id': ref('view_cyber_goods_list')}),
-        (0,0,{'view_mode':'form','view_id': ref('view_cyber_goods_form')})
+            (5,0,0),
+            (0,0,{'view_mode':'list','view_id': ref('view_cyber_goods_list')}),
+            (0,0,{'view_mode':'form','view_id': ref('view_cyber_goods_form')})
         ]"/>
         <field name="domain">[('is_good', '=', True)]</field>
         <field name="context">{'default_is_good': True}</field>
     </record>
-    <!--Component list-->
+
+    <!-- ========== COMPONENT (LINH KIỆN) ========== -->
     <record id="view_cyber_component_list" model="ir.ui.view">
         <field name="name">cyber.component.list</field>
         <field name="model">cyber.product</field>
         <field name="arch" type="xml">
             <list string="Component (Linh kiện)">
                 <field name="name"/>
+                <field name="default_code"/>
                 <field name="component_category_id"/>
                 <field name="component_status"/>
                 <field name="quantity"/>
@@ -124,7 +128,7 @@
             </list>
         </field>
     </record>
-    <!--Component form-->
+
     <record id="view_cyber_component_form" model="ir.ui.view">
         <field name="name">cyber.component.form</field>
         <field name="model">cyber.product</field>
@@ -135,39 +139,38 @@
                         <field name="name"/>
                         <field name="component_category_id"/>
                         <field name="list_price"/>
-                        <field name="cost_price"/>
+                        <field name="standard_price"/>
                         <field name="quantity"/>
                         <field name="uom_id"/>
                         <field name="compatible_machine"/>
                         <field name="lifetime_hours"/>
                         <field name="component_status"/>
                         <field name="serial_number"/>
-                        <field name="supplier_id"/>
+                        <field name="supplier_component_id"/>
                         <field name="is_active"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
-    <!--Component action-->
+
     <record id="action_cyber_component" model="ir.actions.act_window">
         <field name="name">Component (Linh kiện)</field>
         <field name="res_model">cyber.product</field>
         <field name="view_mode">list,form</field>
         <field name="view_ids" eval="[
-        (5,0,0),
-        (0,0,{'view_mode':'list','view_id': ref('view_cyber_component_list')}),
-        (0,0,{'view_mode':'form','view_id': ref('view_cyber_component_form')})
+            (5,0,0),
+            (0,0,{'view_mode':'list','view_id': ref('view_cyber_component_list')}),
+            (0,0,{'view_mode':'form','view_id': ref('view_cyber_component_form')})
         ]"/>
         <field name="domain">[('is_component', '=', True)]</field>
         <field name="context">{'default_is_component': True}</field>
     </record>
-    <!--Menu gốc -->
+
+    <!-- ========== MENU ========== -->
     <menuitem id="menu_cyber_product_root" name="Products"/>
-    <!--Menu service-->
-    <menuitem id="menu_cyber_service" name="Service (Máy chơi game)" parent="menu_cyber_product_root" action="action_cyber_service" sequence="1"/>
-    <!--Menu Goods-->
-    <menuitem id="menu_cyber_goods" name="Goods (Hàng hóa)" parent="menu_cyber_product_root" action="action_cyber_goods" sequence="2"/>
-    <!--Menu Components-->
-    <menuitem id="menu_cyber_component" name="Component (Linh kiện)" parent="menu_cyber_product_root" action="action_cyber_component" sequence="3"/>
+    <menuitem id="menu_cyber_product_sub" name="Product" parent="menu_cyber_product_root"/>
+    <menuitem id="menu_cyber_service" name="Service (Máy chơi game)" parent="menu_cyber_product_sub" action="action_cyber_service" sequence="1"/>
+    <menuitem id="menu_cyber_goods" name="Goods (Hàng hóa)" parent="menu_cyber_product_sub" action="action_cyber_goods" sequence="2"/>
+    <menuitem id="menu_cyber_component" name="Component (Linh kiện)" parent="menu_cyber_product_sub" action="action_cyber_component" sequence="3"/>
 </odoo>

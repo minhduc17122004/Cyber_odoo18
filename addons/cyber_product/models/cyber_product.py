@@ -3,32 +3,42 @@ from odoo.exceptions import ValidationError
 
 class CyberProduct(models.Model):
     _name = "cyber.product"
+    _description = "Cyber Product"
     _inherits = {'product.template': 'product_tmpl_id'}
-    product_tmpl_id = fields.Many2one('product.template', required=True, ondelete='cascade')
 
-    #Phân loại sản phẩm
+    product_tmpl_id = fields.Many2one(
+        'product.template',
+        string="Sản phẩm gốc",
+        required=True,
+        ondelete='cascade'
+    )
+
+    # Phân loại sản phẩm
     is_machine = fields.Boolean(string="Là máy dịch vụ", default=False)
     is_good = fields.Boolean(string="Là hàng hóa", default=False)
     is_component = fields.Boolean(string="Là linh kiện", default=False)
 
-    #Thông tin chung
-    name = fields.Char(string="Tên sản phẩm / thiết bị", required=True)
-    uom_id = fields.Many2one('uom.uom', string="Đơn vị tính", required=True)
-    list_price = fields.Float(string="Giá bán (VNĐ)")
-    cost_price = fields.Float(string="Giá vốn (VNĐ)")
+    # Thông tin chung bổ sung
     quantity = fields.Float(string="Số lượng tồn", default=0.0)
-    supplier_id = fields.Many2one("res.partner", string="Nhà cung cấp")
     is_active = fields.Boolean(string="Đang hoạt động", default=True)
-    barcode = fields.Char(string="Mã vạch / định danh")
 
-    #Service
-    service_category_id = fields.Many2one("product.category", string="Loại máy")
+    # Service fields
+    service_category_id = fields.Many2one(
+        "product.category",
+        string="Loại máy",
+        domain=[('category_type', '=', 'service')]
+    )
     machine_status = fields.Selection([
         ('active', 'Hoạt động'),
         ('maintenance', 'Bảo trì'),
         ('offline', 'Ngoại tuyến'),
         ('in_use', 'Đang sử dụng')
     ], string="Trạng thái máy", default='active')
+    supplier_service_id = fields.Many2one(
+        "res.partner",
+        string="Nhà cung cấp",
+        domain=[('supplier_type', '=', 'service')]
+    )
     machine_spec = fields.Text(string="Cấu hình phần cứng")
     location = fields.Char(string="Vị trí đặt máy")
     price_per_hour = fields.Float(string="Giá dịch vụ (VNĐ/giờ)")
@@ -38,18 +48,46 @@ class CyberProduct(models.Model):
     serial_number = fields.Char(string="Số seri / mã định danh")
     ip_address = fields.Char(string="Địa chỉ IP")
 
-    #Good
-    good_category_id = fields.Many2one("product.category", string="Danh mục hàng hóa")
+    # Good fields
+    good_category_id = fields.Many2one(
+        "product.category",
+        string="Danh mục hàng hóa",
+        domain=[('category_type', '=', 'good')]
+    )
+    uom_good_id = fields.Many2one(
+        "cyber.uom",
+        string="Đơn vị tính hàng hóa",
+        domain=[('uom_type', '=', 'good')]
+    )
+    supplier_good_id = fields.Many2one(
+        "res.partner",
+        string="Nhà cung cấp",
+        domain=[('supplier_type', '=', 'good')]
+    )
     tax_percent = fields.Float(string="Thuế VAT (%)")
     expiry_date = fields.Date(string="Ngày hết hạn")
     good_status = fields.Selection([
         ('available', 'Có sẵn'),
         ('running out', 'Gần hết'),
         ('no more', 'Hết')
-    ], string="Trạng thái linh kiện", default='available')
+    ], string="Trạng thái hàng hóa", default='available')
 
-    #Component
-    component_category_id = fields.Many2one("product.category", string="Loại linh kiện")
+    # Component fields
+    component_category_id = fields.Many2one(
+        "product.category",
+        string="Loại linh kiện",
+        domain=[('category_type', '=', 'component')]
+    )
+    uom_component_id = fields.Many2one(
+        "cyber.uom",
+        string="Đơn vị tính linh kiện",
+        domain=[('uom_type', '=', 'component')]
+    )
+    supplier_component_id = fields.Many2one(
+        "res.partner",
+        string="Nhà cung cấp",
+        domain=[('supplier_type', '=', 'component')]
+    )
     compatible_machine = fields.Text(string="Tương thích với máy")
     lifetime_hours = fields.Integer(string="Tuổi thọ (giờ)")
     component_status = fields.Selection([
@@ -58,7 +96,7 @@ class CyberProduct(models.Model):
         ('no more', 'Hết')
     ], string="Trạng thái linh kiện", default='available')
 
-    #Ràng buộc chọn 1/3
+    # Ràng buộc chọn 1/3 loại sản phẩm
     @api.constrains('is_machine', 'is_good', 'is_component')
     def _check_product_type_flags(self):
         for record in self:
@@ -67,3 +105,18 @@ class CyberProduct(models.Model):
                 raise ValidationError("Chỉ được chọn một loại: Service, Good hoặc Component.")
             if sum(flags) == 0:
                 raise ValidationError("Phải chọn một loại sản phẩm (Service, Good hoặc Component).")
+
+    @api.model
+    def create(self, vals):
+        # Nếu chưa có product_tmpl_id thì tạo tự động
+        if not vals.get('product_tmpl_id'):
+            tmpl_vals = {
+                'name': vals.get('name', 'Sản phẩm mới'),
+                'list_price': vals.get('list_price', 0.0),
+                'standard_price': vals.get('cost_price', 0.0),
+                'barcode': vals.get('barcode', False),
+            }
+            tmpl = self.env['product.template'].create(tmpl_vals)
+            vals['product_tmpl_id'] = tmpl.id
+
+        return super(CyberProduct, self).create(vals)
