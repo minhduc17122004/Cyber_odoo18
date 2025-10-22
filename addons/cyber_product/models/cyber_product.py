@@ -120,3 +120,17 @@ class CyberProduct(models.Model):
             vals['product_tmpl_id'] = tmpl.id
 
         return super(CyberProduct, self).create(vals)
+
+    @api.model
+    def default_get(self, fields):
+        res = super(CyberProduct, self).default_get(fields)
+
+        # Tự động chọn loại danh mục tương ứng theo context
+        if self._context.get('default_is_machine'):
+            res['is_machine'] = True
+        elif self._context.get('default_is_good'):
+            res['is_good'] = True
+        elif self._context.get('default_is_component'):
+            res['is_component'] = True
+
+        return res

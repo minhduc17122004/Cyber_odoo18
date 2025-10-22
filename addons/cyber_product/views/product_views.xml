@@ -26,7 +26,7 @@
                 <sheet>
                     <group>
                         <field name="name"/>
-                        <field name="service_category_id"/>
+                        <field name="service_category_id" domain="[('category_type','=','service')]"/>
                         <field name="machine_status"/>
                         <field name="location"/>
                         <field name="price_per_hour"/>
@@ -53,7 +53,7 @@
             (0,0,{'view_mode':'form','view_id': ref('view_cyber_service_form')})
         ]"/>
         <field name="domain">[('is_machine', '=', True)]</field>
-        <field name="context">{'default_is_machine': True}</field>
+        <field name="context">{'default_is_machine': True, 'default_category_type': 'service'}</field>
     </record>
 
     <!-- ========== GOODS (HÀNG HÓA) ========== -->
@@ -82,7 +82,7 @@
                 <sheet>
                     <group>
                         <field name="name"/>
-                        <field name="good_category_id"/>
+                        <field name="good_category_id" domain="[('category_type','=','good')]"/>
                         <field name="barcode"/>
                         <field name="list_price"/>
                         <field name="standard_price"/>
@@ -109,7 +109,7 @@
             (0,0,{'view_mode':'form','view_id': ref('view_cyber_goods_form')})
         ]"/>
         <field name="domain">[('is_good', '=', True)]</field>
-        <field name="context">{'default_is_good': True}</field>
+        <field name="context">{'default_is_good': True, 'default_category_type': 'good'}</field>
     </record>
 
     <!-- ========== COMPONENT (LINH KIỆN) ========== -->
@@ -137,7 +137,7 @@
                 <sheet>
                     <group>
                         <field name="name"/>
-                        <field name="component_category_id"/>
+                        <field name="component_category_id" domain="[('category_type','=','component')]"/>
                         <field name="list_price"/>
                         <field name="standard_price"/>
                         <field name="quantity"/>
@@ -164,7 +164,7 @@
             (0,0,{'view_mode':'form','view_id': ref('view_cyber_component_form')})
         ]"/>
         <field name="domain">[('is_component', '=', True)]</field>
-        <field name="context">{'default_is_component': True}</field>
+        <field name="context">{'default_is_component': True, 'default_category_type': 'component'}</field>
     </record>
 
     <!-- ========== MENU ========== -->
