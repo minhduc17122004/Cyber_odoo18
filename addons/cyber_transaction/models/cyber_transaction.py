@@ -15,6 +15,8 @@ class CyberTransaction(models.Model):
     )
     username = fields.Char(related='account_id.username', string='Username', store=True)
 
+    invoice_id = fields.Integer(string='Mã hóa đơn')
+
     type = fields.Selection([
         ('topup', 'Nạp tiền'),
         ('spend', 'Chi tiêu'),
