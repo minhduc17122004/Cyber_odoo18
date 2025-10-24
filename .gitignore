@@ -35,3 +35,10 @@ docker-compose.override.yml
 # pycache
 __pycache__/
 
+
+#odoo specific
+*.db
+*.dump
+odoo_data/
+odoo-db-data/
+
