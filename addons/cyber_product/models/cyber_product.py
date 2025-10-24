@@ -26,7 +26,8 @@ class CyberProduct(models.Model):
     service_category_id = fields.Many2one(
         "product.category",
         string="Loại máy",
-        domain=[('category_type', '=', 'service')]
+        domain=[('category_type', '=', 'service')],
+        inverse="_inverse_supplier_service_id"
     )
     machine_status = fields.Selection([
         ('active', 'Hoạt động'),
@@ -62,7 +63,8 @@ class CyberProduct(models.Model):
     supplier_good_id = fields.Many2one(
         "res.partner",
         string="Nhà cung cấp",
-        domain=[('supplier_type', '=', 'good')]
+        domain=[('supplier_type', '=', 'good')],
+        inverse="_inverse_supplier_service_id"
     )
     tax_percent = fields.Float(string="Thuế VAT (%)")
     expiry_date = fields.Date(string="Ngày hết hạn")
@@ -86,7 +88,8 @@ class CyberProduct(models.Model):
     supplier_component_id = fields.Many2one(
         "res.partner",
         string="Nhà cung cấp",
-        domain=[('supplier_type', '=', 'component')]
+        domain=[('supplier_type', '=', 'component')],
+        inverse="_inverse_supplier_component_id"
     )
     compatible_machine = fields.Text(string="Tương thích với máy")
     lifetime_hours = fields.Integer(string="Tuổi thọ (giờ)")
@@ -105,10 +108,10 @@ class CyberProduct(models.Model):
                 raise ValidationError("Chỉ được chọn một loại: Service, Good hoặc Component.")
             if sum(flags) == 0:
                 raise ValidationError("Phải chọn một loại sản phẩm (Service, Good hoặc Component).")
-
+            
     @api.model
     def create(self, vals):
-        # Nếu chưa có product_tmpl_id thì tạo tự động
+        # 1. Tạo product_tmpl_id nếu chưa có
         if not vals.get('product_tmpl_id'):
             tmpl_vals = {
                 'name': vals.get('name', 'Sản phẩm mới'),
@@ -119,18 +122,64 @@ class CyberProduct(models.Model):
             tmpl = self.env['product.template'].create(tmpl_vals)
             vals['product_tmpl_id'] = tmpl.id
 
+        # 2. Tạo partner tự động cho Service
+        if vals.get('supplier_service_id') and isinstance(vals['supplier_service_id'], str):
+            partner_vals = {
+                'name': vals['supplier_service_id'],
+                'is_supplier_cyber': True,
+                'supplier_type': 'service'
+            }
+            partner = self.env['res.partner'].create(partner_vals)
+            vals['supplier_service_id'] = partner.id
+
+        # 3. Tạo partner tự động cho Good
+        if vals.get('supplier_good_id') and isinstance(vals['supplier_good_id'], str):
+            partner_vals = {
+                'name': vals['supplier_good_id'],
+                'is_supplier_cyber': True,
+                'supplier_type': 'good'
+            }
+            partner = self.env['res.partner'].create(partner_vals)
+            vals['supplier_good_id'] = partner.id
+
+        # 4. Tạo partner tự động cho Component
+        if vals.get('supplier_component_id') and isinstance(vals['supplier_component_id'], str):
+            partner_vals = {
+                'name': vals['supplier_component_id'],
+                'is_supplier_cyber': True,
+                'supplier_type': 'component'
+            }
+            partner = self.env['res.partner'].create(partner_vals)
+            vals['supplier_component_id'] = partner.id
+
         return super(CyberProduct, self).create(vals)
+    
+    def _inverse_supplier_service_id(self):
+        for record in self:
+            if record.supplier_service_id and not record.supplier_service_id.id:
+                partner = self.env['res.partner'].create({
+                    'name': record.supplier_service_id.name,
+                    'supplier_type': 'service',
+                    'is_supplier_cyber': True
+                })
+                record.supplier_service_id = partner.id
 
-    @api.model
-    def default_get(self, fields):
-        res = super(CyberProduct, self).default_get(fields)
+    def _inverse_supplier_good_id(self):
+        for record in self:
+            if record.supplier_good_id and not record.supplier_good_id.id:
+                partner = self.env['res.partner'].create({
+                    'name': record.supplier_good_id.name,
+                    'supplier_type': 'good',
+                    'is_supplier_cyber': True
+                })
+                record.supplier_good_id = partner.id
 
-        # Tự động chọn loại danh mục tương ứng theo context
-        if self._context.get('default_is_machine'):
-            res['is_machine'] = True
-        elif self._context.get('default_is_good'):
-            res['is_good'] = True
-        elif self._context.get('default_is_component'):
-            res['is_component'] = True
-
-        return res
+    def _inverse_supplier_component_id(self):
+        for record in self:
+            if record.supplier_component_id and not record.supplier_component_id.id:
+                partner = self.env['res.partner'].create({
+                    'name': record.supplier_component_id.name,
+                    'supplier_type': 'component',
+                    'is_supplier_cyber': True
+                })
+                record.supplier_component_id = partner.id

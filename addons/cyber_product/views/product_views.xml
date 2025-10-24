@@ -10,6 +10,7 @@
                 <field name="default_code"/>
                 <field name="ip_address"/>
                 <field name="price_per_hour"/>
+                <field name="list_price"/>
                 <field name="service_category_id"/>
                 <field name="machine_status"/>
                 <field name="usage_hours"/>
@@ -30,6 +31,10 @@
                         <field name="machine_status"/>
                         <field name="location"/>
                         <field name="price_per_hour"/>
+                        <field name="list_price"/>
+                        <field name="supplier_service_id"
+                               domain="[('supplier_type','=','service')]"
+                               options="{'no_create': False}"/>
                         <field name="usage_hours"/>
                         <field name="machine_spec"/>
                         <field name="serial_number"/>
@@ -90,7 +95,9 @@
                         <field name="quantity"/>
                         <field name="uom_id"/>
                         <field name="expiry_date"/>
-                        <field name="supplier_good_id"/>
+                        <field name="supplier_good_id"
+                               domain="[('supplier_type','=','good')]"
+                               options="{'no_create': False}"/>
                         <field name="good_status"/>
                         <field name="is_active"/>
                     </group>
@@ -146,7 +153,9 @@
                         <field name="lifetime_hours"/>
                         <field name="component_status"/>
                         <field name="serial_number"/>
-                        <field name="supplier_component_id"/>
+                        <field name="supplier_component_id"
+                               domain="[('supplier_type','=','component')]"
+                               options="{'no_create': False}"/>
                         <field name="is_active"/>
                     </group>
                 </sheet>
