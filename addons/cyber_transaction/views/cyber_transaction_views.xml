@@ -24,7 +24,6 @@
                             </group>
                             <group>
                                 <field name="amount" string="Số tiền"/>
-                                <field name="invoice_id" string="Hóa đơn liên quan"/>
                             </group>
                         </group>
 
@@ -44,7 +43,6 @@
                 <list string="Danh sách giao dịch" default_order="create_date desc">
                     <field name="account_id" string="Tài khoản"/>
                     <field name="type" string="Loại giao dịch"/>
-                    <field name="invoice_id" string="Hóa đơn"/>
                     <field name="amount" string="Số tiền"/>
                     <field name="payment_method" string="Phương thức thanh toán"/>
                     <field name="create_date" string="Ngày tạo"/>
