@@ -16,13 +16,23 @@ class CyberCustomer(models.Model):
     dob = fields.Date(string="Date of Birth")
     join_date = fields.Date(string="Join Date", default=fields.Date.context_today)
     total_play_time = fields.Float(string="Total Play Time (hours)", default=0.0)
-    total_balance = fields.Float(string="Total Balance", digits=(10, 2), default=0.0)
+    total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
+    created_at = fields.Datetime(string="Created At", default=fields.Datetime.now, readonly=True)
+    updated_at = fields.Datetime(string="Updated At", default=fields.Datetime.now, readonly=True)
 
     segment_id = fields.Many2one(
         'customer.segment',
         string='Phân khúc khách hàng',
+        ondelete='set null'
     )
     segment_name = fields.Char(related="segment_id.segment_name", store=True)
+
+    # account_ids = fields.One2many(
+    #     'cyber.account',
+    #     'customer_id',
+    #     string='Accounts'
+    # )
+
 
     def write(self, vals):
         res = super(CyberCustomer, self).write(vals)
@@ -38,6 +48,7 @@ class CyberCustomer(models.Model):
 
                 if customer.segment_id != segment.id:
                     customer.segment_id = segment.id
+
         return res
     
     @api.model
@@ -52,7 +63,11 @@ class CyberCustomer(models.Model):
         )
 
         customer.segment_id = segment.id
+
         return customer
     
-    
-    
+    def _calculate_totals(self):
+        for customer in self:
+            accounts = self.env['cyber.account'].search([('customer_id', '=', customer.id), ('state', '=', 'active')])
+            customer.total_play_time = sum(acc.play_time_total for acc in accounts)
+            customer.total_spent = sum(acc.total_spent for acc in accounts)
