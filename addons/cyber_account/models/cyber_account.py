@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+
 from odoo import api, fields, models
+
 
 class CyberAccount(models.Model):
     _name = "cyber.account"
