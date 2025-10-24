@@ -7,7 +7,7 @@
     'category': 'Uncategorized',
     'version': '0.1',
     'depends': [
-        'product',
+        'product', 'cyber_customer'
     ],
     'data': ['security/ir.model.access.csv',
     'views/cyber_account_views.xml',],

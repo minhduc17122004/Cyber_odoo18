@@ -11,14 +11,21 @@
                         <div class="oe_title">
                             <label for="username" string="Username" class="oe_edit_only"/>
                             <h1><field name="username" placeholder="e.g. gamer01"/></h1>
-                            <label for="customer_id"/>
-                            <h3><field name="customer_id"/></h3>
+                            <label for="password" string="Password" class="oe_edit_only"/>
+                            <h1><field name="password" placeholder="e.g. ********" /></h1>
                         </div>
 
                         <group name="main_info">
                             <group>
-                                <field name="password" password="True"/>
+                                <field name="customer_id" options="{'no_create': True}"/>
                                 <field name="balance"/>
+                                <field name="play_time_total"/>
+                                <field name="play_time_remaining"/>
+                                <field name="total_spent"/>
+                                <field name="total_recharge"/>
+                                <field name="state"/>
+                                <field name="created_at"/>
+                                <field name="updated_at"/>
                             </group>
                             <!-- <group>
                                 <field name="discount_id"/>
@@ -26,9 +33,7 @@
                             </group> -->
                         </group>
 
-                        <group>
-                            <field name="last_session"/>
-                        </group>
+                        <!-- Đã gỡ bỏ field last_session -->
 
                         <notebook>
                             <!-- <page string="Sessions">
@@ -69,15 +74,12 @@
                 <list string="Cyber Accounts" default_order="create_date desc">
                     <field name="username"/>
                     <field name="customer_id"/>
-                    <!-- <field name="discount_id"/> -->
                     <field name="balance"/>
                     <field name="state"/>
-                    <field name="last_session"/>
                 </list>
             </field>
         </record>
 
-        <!-- ===== Action ===== -->
         <!-- ===== Action ===== -->
         <record id="action_cyber_account" model="ir.actions.act_window">
             <field name="name">Cyber Account</field>

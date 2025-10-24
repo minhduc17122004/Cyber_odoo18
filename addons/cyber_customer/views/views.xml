@@ -6,9 +6,9 @@
       <field name="model">cyber.customer</field>
       <field name="arch" type="xml">
         <list string="Cyber Customers">
-          <field name="name"/> 
+          <field name="name"/>
+          <field name="segment_name"/>
           <field name="phone"/>
-          <field name="total_balance"/>
           <field name="join_date"/>
         </list>
       </field>
@@ -23,11 +23,15 @@
           <sheet>
             <group>
               <field name="name"/>
+              <field name="segment_name"/>
               <field name="phone"/>
               <field name="dob"/>
               <field name="join_date"/>
               <field name="total_play_time"/>
-              <field name="total_balance"/>
+              <field name="total_spent"/>
+              <!-- <field name="account_ids"/> -->
+              <field name="created_at"/>  
+              <field name="updated_at"/>
             </group>
           </sheet>
         </form>
