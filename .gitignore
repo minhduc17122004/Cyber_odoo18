@@ -42,3 +42,7 @@ __pycache__/
 odoo_data/
 odoo-db-data/
 
+# Warp
+WARP.md
+.warpindexingignore
+
