@@ -36,6 +36,18 @@
               <field name="created_at"/>  
               <field name="updated_at"/>
             </group>
+
+            <notebook>
+              <page string="Accounts">
+                <field name="account_ids">
+                  <list string="Accounts">
+                    <field name="username"/>
+                    <field name="balance"/>
+                    <field name="state"/>
+                  </list>
+                </field>
+              </page>
+            </notebook>
           </sheet>
         </form>
       </field>

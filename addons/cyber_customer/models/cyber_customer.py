@@ -30,11 +30,11 @@ class CyberCustomer(models.Model):
     )
     segment_name = fields.Char(related="segment_id.segment_name", store=True)
 
-    # account_ids = fields.One2many(
-    #     'cyber.account',
-    #     'customer_id',
-    #     string='Accounts'
-    # )
+    account_ids = fields.One2many(
+        'cyber.account',
+        'customer_id',
+        string='Accounts'
+    )
 
 
     def write(self, vals):
