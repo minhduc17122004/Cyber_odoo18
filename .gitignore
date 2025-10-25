@@ -32,6 +32,8 @@ ENV/
 
 # Docker
 docker-compose.yaml
+docker-compose.yml
+docker-compose.override.yml
 # pycache
 __pycache__/
 
