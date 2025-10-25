@@ -31,9 +31,8 @@ env/
 ENV/
 
 # Docker
-docker-compose.yaml
 docker-compose.yml
-docker-compose.override.yml
+docker-compose.yaml
 # pycache
 __pycache__/
 
@@ -43,6 +42,7 @@ __pycache__/
 *.dump
 odoo_data/
 odoo-db-data/
+pass.txt
 
 # Warp
 WARP.md
