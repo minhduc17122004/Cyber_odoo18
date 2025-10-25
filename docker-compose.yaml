@@ -1,21 +1,27 @@
+version: '3.8'
+
 services:
-    web:
-        image: odoo:18.0
-        container_name: odoo
-        depends_on:
-            - db
-        ports:
-            - '8069:8069'
-        volumes:
-            - ./addons:/mnt/extra-addons
-    db:
-        image: postgres
-        environment:
-            - POSTGRES_DB=postgres
-            - POSTGRES_PASSWORD=odoo
-            - POSTGRES_USER=odoo
-    mail:
-        image: axllent/mailpit:latest
-        ports:
-            - '1025:1025'
-            - '8025:8025'
+  web:
+    image: odoo:18.0
+    container_name: odoo
+    depends_on:
+      - db
+    ports:
+      - "8069:8069"
+    environment:
+      - HOST=db
+      - USER=odoo
+      - PASSWORD=odoo
+    volumes:
+      - ./addons:/mnt/extra-addons
+      - ./odoo-data:/var/lib/odoo
+
+  db:
+    image: postgres:15
+    container_name: odoo_db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+    volumes:
+      - ./odoo-db-data:/var/lib/postgresql/data
