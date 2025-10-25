@@ -31,7 +31,7 @@ env/
 ENV/
 
 # Docker
-docker-compose.yml
+docker-compose.yaml
 # pycache
 __pycache__/
 
