@@ -33,8 +33,9 @@
                         <field name="price_per_hour"/>
                         <field name="list_price"/>
                         <field name="supplier_service_id"
-                               domain="[('supplier_type','=','service')]"
-                               options="{'no_create': False}"/>
+                                domain="[('supplier_type','=','service')]"
+                                context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'service'}"
+                                options="{'no_create': False}"/>
                         <field name="usage_hours"/>
                         <field name="machine_spec"/>
                         <field name="serial_number"/>
@@ -96,8 +97,9 @@
                         <field name="uom_id"/>
                         <field name="expiry_date"/>
                         <field name="supplier_good_id"
-                               domain="[('supplier_type','=','good')]"
-                               options="{'no_create': False}"/>
+                            domain="[('supplier_type','=','good')]"
+                            context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'good'}"
+                            options="{'no_create': False}"/>
                         <field name="good_status"/>
                         <field name="is_active"/>
                     </group>
@@ -154,8 +156,9 @@
                         <field name="component_status"/>
                         <field name="serial_number"/>
                         <field name="supplier_component_id"
-                               domain="[('supplier_type','=','component')]"
-                               options="{'no_create': False}"/>
+                                domain="[('supplier_type','=','component')]"
+                                context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'component'}"
+                                options="{'no_create': False}"/>
                         <field name="is_active"/>
                     </group>
                 </sheet>

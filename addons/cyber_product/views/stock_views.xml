@@ -30,12 +30,22 @@
                         <field name="picking_type_id"/>
                         <field name="scheduled_date"/>
                         <field name="state"/>
+                        <field name="partner_id" string="Nhà cung cấp"/>
                     </group>
                     <notebook>
                         <page string="Dòng sản phẩm">
                             <field name="move_ids_without_package">
                                 <list editable="bottom">
-                                    <field name="product_id"/>
+                                    <!-- Thay vì chỉ có product_id, ta thêm cyber_product_id có domain động -->
+                                    <field name="cyber_product_id"
+                                           string="Sản phẩm Cyber"
+                                           domain="[
+                                               '|','|',
+                                               ('supplier_good_id', '=', parent.partner_id),
+                                               ('supplier_component_id', '=', parent.partner_id),
+                                               ('supplier_service_id', '=', parent.partner_id)
+                                           ]"/>
+                                    <field name="product_id" invisible="1"/> <!-- Ẩn product_id gốc để vẫn tính toán liên quan -->
                                     <field name="product_uom_qty"/>
                                     <field name="state"/>
                                     <field name="is_machine"/>
@@ -49,6 +59,7 @@
             </form>
         </field>
     </record>
+
 
     <!-- List view cho Stock Move -->
     <record id="view_cyber_stock_move_list" model="ir.ui.view">

@@ -8,7 +8,7 @@ class CyberStockMove(models.Model):
     cyber_product_id = fields.Many2one(
         'cyber.product',
         string="Sản phẩm Cyber",
-        compute='_compute_cyber_product',
+        #compute='_compute_cyber_product',
         store=True
     )
 
@@ -26,7 +26,7 @@ class CyberStockMove(models.Model):
             move.cyber_product_id = cyber.id if cyber else False
 
     # Override onchange để tránh lỗi partner_ref
-    @api.onchange('product_id')
+    @api.onchange('product_id.partner_id')
     def _onchange_product_id_override(self):
         for move in self:
             product = move.product_id
@@ -35,6 +35,30 @@ class CyberStockMove(models.Model):
                 move.name = product.seller_ids[0].product_name or product.name
             else:
                 move.name = product.name
+
+    # Lọc sản phẩm Cyber theo nhà cung cấp trên phiếu nhập
+    @api.onchange('picking_id', 'picking_id.partner_id')
+    def _onchange_partner_filter_product(self):
+        for move in self:
+            if move.picking_id and move.picking_id.partner_id:
+                supplier_id = move.picking_id.partner_id.id
+                return {
+                    'domain': {
+                        'cyber_product_id': [
+                            '|', '|',
+                            ('supplier_component_id', '=', supplier_id),
+                            ('supplier_good_id', '=', supplier_id),
+                            ('supplier_service_id', '=', supplier_id)
+                        ]
+                    }
+                }
+        return {'domain': {'cyber_product_id': []}}
+    
+    @api.onchange('cyber_product_id')
+    def _onchange_cyber_product_id(self):
+        for move in self:
+            if move.cyber_product_id:
+                move.product_id = move.cyber_product_id.product_id.id if move.cyber_product_id.product_id else False
 
     # Constraint kiểm tra tồn kho khi xuất kho
     @api.constrains('product_uom_qty', 'state')
