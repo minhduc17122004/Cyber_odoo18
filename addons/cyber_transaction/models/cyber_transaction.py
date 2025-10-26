@@ -13,7 +13,7 @@ class CyberTransaction(models.Model):
         required=True,
         ondelete='cascade'
     )
-    username = fields.Char(related='account_id.username', string='Username', store=True)
+    # username = fields.Char(related='account_id.username', string='Username', store=True)
 
     type = fields.Selection([
         ('topup', 'Nạp tiền'),
@@ -35,3 +35,42 @@ class CyberTransaction(models.Model):
         for rec in self:
             if rec.amount <= 0:
                 raise ValidationError(_("Số tiền giao dịch phải lớn hơn 0."))
+    @api.model
+    def create(self, vals):
+        transaction = super(CyberTransaction, self).create(vals)
+        account = transaction.account_id
+
+        if not account:
+            raise ValidationError(_("Không tìm thấy tài khoản để cập nhật số dư."))
+
+        # Nếu là giao dịch nạp tiền
+        if transaction.type == 'topup':
+            # Lấy thông tin khách hàng và hạng (segment)
+            customer = account.customer_id
+            discount_rate = customer.segment_id.discount_rate if customer and customer.segment_id else 0.0
+
+            # Tính số tiền cộng thêm (ví dụ discount_rate = 5 nghĩa là +5%)
+            bonus = transaction.amount * (discount_rate / 100.0)
+            total_add = transaction.amount + bonus
+
+            # Cập nhật số dư
+            account.balance += total_add
+
+            # Cập nhật tổng số lần & ngày nạp gần nhất (nếu có field tương ứng)
+            if hasattr(account, 'total_recharge'):
+                account.total_recharge += transaction.amount
+            if hasattr(account, 'last_topup_date'):
+                account.last_topup_date = fields.Datetime.now()
+
+        # Nếu là giao dịch chi tiêu
+        elif transaction.type == 'spend':
+            if transaction.amount > account.balance:
+                raise ValidationError(_("Số dư không đủ để thực hiện giao dịch chi tiêu."))
+            account.balance -= transaction.amount
+
+        # Lưu lại thay đổi
+        account.sudo().write({
+            'balance': account.balance,
+        })
+
+        return transaction

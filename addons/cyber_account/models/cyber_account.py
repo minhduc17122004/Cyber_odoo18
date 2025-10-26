@@ -30,6 +30,18 @@ class CyberAccount(models.Model):
         required=True,
         ondelete='cascade'
     )
+    display_name = fields.Char(
+    string="Display Name",
+    compute="_compute_display_name",
+    store=False
+)
+
+    @api.depends('username')
+    def _compute_display_name(self):
+        """ hiển thị username thay cho 'cyber.account,ID'"""
+        for record in self:
+            record.display_name = record.username or f"Tài khoản #{record.id}"
+
 
 
     def write(self, vals):
@@ -51,6 +63,7 @@ class CyberAccount(models.Model):
             res = super().unlink()
             customer._calculate_totals()
         return res
+
 
 class CyberCustomer(models.Model):
     _inherit = "cyber.customer"

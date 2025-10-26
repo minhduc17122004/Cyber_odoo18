@@ -18,7 +18,6 @@
 
                         <group name="main_info">
                             <group>
-                                <field name="username" string="Username" readonly="1"/>
                                 <field name="type" string="Loại giao dịch"/>
                                 <field name="payment_method" string="Phương thức thanh toán"/>
                             </group>
