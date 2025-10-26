@@ -49,3 +49,12 @@ class CyberAccount(models.Model):
             customer._calculate_totals()
         return res
 
+# THÊM class này để extend cyber.customer
+class CyberCustomer(models.Model):
+    _inherit = "cyber.customer"
+
+    account_ids = fields.One2many(
+        comodel_name='cyber.account',
+        inverse_name='customer_id',
+        string='Accounts'
+    )

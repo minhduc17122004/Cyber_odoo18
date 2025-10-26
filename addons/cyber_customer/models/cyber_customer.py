@@ -31,11 +31,10 @@ class CyberCustomer(models.Model):
     segment_name = fields.Char(related="segment_id.segment_name", store=True)
 
     # account_ids = fields.One2many(
-    #     'cyber.account',
-    #     'customer_id',
+    #     comodel_name='cyber.account',
+    #     inverse_name='customer_id',
     #     string='Accounts'
     # )
-
 
     def write(self, vals):
         res = super(CyberCustomer, self).write(vals)
@@ -49,8 +48,10 @@ class CyberCustomer(models.Model):
                     limit=1
                 )
 
-                if customer.segment_id != segment.id:
-                    customer.segment_id = segment.id
+                # Sửa đây: kiểm tra segment có tồn tại không
+                new_segment_id = segment.id if segment else False
+                if customer.segment_id.id != new_segment_id:
+                    customer.segment_id = new_segment_id
 
         return res
     
@@ -65,12 +66,19 @@ class CyberCustomer(models.Model):
             limit=1
         )
 
-        customer.segment_id = segment.id
+        # Sửa đây: kiểm tra segment có tồn tại không
+        if segment:
+            customer.segment_id = segment.id
+        else:
+            customer.segment_id = False
 
         return customer
     
     def _calculate_totals(self):
         for customer in self:
-            accounts = self.env['cyber.account'].search([('customer_id', '=', customer.id), ('state', '=', 'active')])
+            accounts = self.env['cyber.account'].search([
+                ('customer_id', '=', customer.id), 
+                ('state', '=', 'active')
+            ])
             customer.total_play_time = sum(acc.play_time_total for acc in accounts)
             customer.total_spent = sum(acc.total_spent for acc in accounts)

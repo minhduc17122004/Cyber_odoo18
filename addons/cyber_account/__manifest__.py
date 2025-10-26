@@ -7,10 +7,13 @@
     'category': 'Uncategorized',
     'version': '0.1',
     'depends': [
-        'product', 'cyber_customer'
+        'product', 'customer_segment','cyber_customer'
     ],
-    'data': ['security/ir.model.access.csv',
-    'views/cyber_account_views.xml',],
+    'data': [
+        'security/ir.model.access.csv',
+        'views/cyber_account_views.xml',
+        'views/cyber_customer_inherit_views.xml',
+        ],
     # 'qweb': ['static/src/xml/*.xml'],
     'installable': True,
     'application': True,
