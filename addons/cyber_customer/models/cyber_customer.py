@@ -17,9 +17,6 @@ class CyberCustomer(models.Model):
     join_date = fields.Date(string="Join Date", default=fields.Date.context_today)
     total_play_time = fields.Float(string="Total Play Time (hours)", default=0.0)
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
-    last_sesion_end = fields.Datetime(string="Last Session End")
-    last_topup_date = fields.Datetime(string="Last Top-up Date")
-    last_spend_date = fields.Datetime(string="Last Spend Date")
     created_at = fields.Datetime(string="Created At", default=fields.Datetime.now, readonly=True)
     updated_at = fields.Datetime(string="Updated At", default=fields.Datetime.now, readonly=True)
 
@@ -30,11 +27,11 @@ class CyberCustomer(models.Model):
     )
     segment_name = fields.Char(related="segment_id.segment_name", store=True)
 
-    account_ids = fields.One2many(
-        'cyber.account',
-        'customer_id',
-        string='Accounts'
-    )
+    # account_ids = fields.One2many(
+    #     'cyber.account',
+    #     'customer_id',
+    #     string='Accounts'
+    # )
 
 
     def write(self, vals):

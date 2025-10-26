@@ -31,4 +31,4 @@ env/
 ENV/
 
 # Docker
-docker-compose.yaml
+docker-compose.override.yml

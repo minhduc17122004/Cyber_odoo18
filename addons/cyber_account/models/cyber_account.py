@@ -14,6 +14,9 @@ class CyberAccount(models.Model):
     play_time_remaining = fields.Float('Play Time Remaining (hours)', default=0.0)
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
     total_recharge = fields.Float(string="Total Recharge", digits=(10, 2), default=0.0)
+    last_session_end = fields.Datetime(string="Last Session End")
+    last_topup_date = fields.Datetime(string="Last Top-up Date")
+    last_spend_date = fields.Datetime(string="Last Spend Date")
     created_at = fields.Datetime(string="Created At", default=fields.Datetime.now, readonly=True)
     updated_at = fields.Datetime(string="Updated At", default=fields.Datetime.now, readonly=True)
     state = fields.Selection([
@@ -49,3 +52,11 @@ class CyberAccount(models.Model):
             customer._calculate_totals()
         return res
 
+class CyberCustomer(models.Model):
+    _inherit = "cyber.customer"
+
+    account_ids = fields.One2many(
+        comodel_name='cyber.account',
+        inverse_name='customer_id',
+        string='Accounts'
+    )
