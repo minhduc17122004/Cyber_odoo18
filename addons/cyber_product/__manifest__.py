@@ -1,5 +1,5 @@
 {
-    'name': 'Cyber Product Management',
+    'name': 'Cyber Product',
     'version': '1.0',
     'author': 'CONG SON',
     'category': 'Cyber',
