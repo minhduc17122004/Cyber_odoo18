@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Cyber Customer",
-    'summary': "Module for Cyber Customer",
+    'name': "Cyber Customer Segments",
+    'summary': "Module for Customer Segment",
     'author': "Toan Nguyen",
     'category': 'Uncategorized',
     'version': '1.0.0',
-    'depends': ['base', 'customer_segment'],
+    'depends': ['base'],
     'data': [
         'views/views.xml',
         'views/templates.xml',
