@@ -17,4 +17,3 @@ class CustomerSegment(models.Model):
     # )
 
 
-
