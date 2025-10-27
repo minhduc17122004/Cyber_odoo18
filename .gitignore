@@ -31,4 +31,20 @@ env/
 ENV/
 
 # Docker
+docker-compose.yaml
+docker-compose.yml
 docker-compose.override.yml
+# pycache
+__pycache__/
+
+
+#odoo specific
+*.db
+*.dump
+odoo_data/
+odoo-db-data/
+
+# Warp
+WARP.md
+.warpindexingignore
+
