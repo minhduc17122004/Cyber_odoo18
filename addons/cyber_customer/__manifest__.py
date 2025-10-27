@@ -3,7 +3,7 @@
     'name': "Cyber Customer",
     'summary': "Module for Cyber Customer",
     'author': "Toan Nguyen",
-    'category': 'Uncategorized',
+    'category': 'Cyber',
     'version': '1.0.0',
     'depends': ['base', 'customer_segment'],
     'data': [

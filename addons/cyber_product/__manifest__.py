@@ -2,7 +2,7 @@
     'name': 'Cyber Product Management',
     'version': '1.0',
     'author': 'CONG SON',
-    'category': 'CyberGame',
+    'category': 'Cyber',
     'summary': 'Quản lý sản phẩm (Máy & Dịch vụ) cho quán game',
     'depends': ['base','product'],
     'data': [

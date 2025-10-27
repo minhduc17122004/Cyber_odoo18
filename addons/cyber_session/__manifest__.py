@@ -3,7 +3,7 @@
     'version': '1.0',
     'summary': 'Quản lý phiên chơi trong phòng net (Cyber Game)',
     'category': 'Cyber',
-    'author': 'Duc Tran',
+    'author': 'Minh Đức',
     'depends': ['base', 'mail', 'product'],
     'data': [
         'security/ir.model.access.csv',

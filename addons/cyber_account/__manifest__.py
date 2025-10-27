@@ -4,7 +4,7 @@
     'summary': """Quản lý tài khoản khách hàng quán nét""",
     'description': """Quản lý thông tin khách hàng""",
     'author': "Minh Quân",
-    'category': 'Uncategorized',
+    'category': 'Cyber',
     'version': '0.1',
     'depends': [
         'product', 'cyber_customer', 'customer_segment'
