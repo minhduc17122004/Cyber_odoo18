@@ -9,6 +9,7 @@
     'depends': [
         'base',         
         'cyber_account', 
+        'cyber_customer',
     ],
     'data': [
         'security/ir.model.access.csv',

@@ -23,7 +23,7 @@
           <sheet>
             <group>
               <field name="name"/>
-              <field name="segment_name" readonly="1"/>
+              <field name="segment_id"/>
               <field name="phone"/>
               <field name="dob"/>
               <field name="join_date"/>
