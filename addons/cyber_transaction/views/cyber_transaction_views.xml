@@ -18,17 +18,12 @@
 
                         <group name="main_info">
                             <group>
-                                <field name="username" string="Username" readonly="1"/>
                                 <field name="type" string="Loại giao dịch"/>
                                 <field name="payment_method" string="Phương thức thanh toán"/>
                             </group>
                             <group>
                                 <field name="amount" string="Số tiền"/>
                             </group>
-                        </group>
-
-                        <group name="date_info" string="Thông tin thời gian">
-                            <field name="create_date" string="Ngày tạo" readonly="1"/>
                         </group>
                     </sheet>
                 </form>

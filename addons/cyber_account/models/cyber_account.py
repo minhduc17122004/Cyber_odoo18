@@ -9,7 +9,7 @@ class CyberAccount(models.Model):
 
     username = fields.Char('Username', required=True)
     password = fields.Char('Password', required=True)
-    balance = fields.Float('Balance', digits=(10, 2), default=0.0)
+    balance = fields.Float(compute = '_auto_count_balance', string ='Balance', digits=(10, 2), default=0.0)
     play_time_total = fields.Float('Play Time (hours)', default=0.0)
     play_time_remaining = fields.Float('Play Time Remaining (hours)', default=0.0)
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
@@ -31,6 +31,12 @@ class CyberAccount(models.Model):
         ondelete='cascade'
     )
 
+    # transaction_ids = fields.One2many(
+    #     comodel_name='cyber.transaction',
+    #     inverse_name='account_id',
+    #     string='Transactions'
+    # )
+
 
     def write(self, vals):
         res = super().write(vals)
@@ -51,6 +57,24 @@ class CyberAccount(models.Model):
             res = super().unlink()
             customer._calculate_totals()
         return res
+    
+    @api.depends('total_spent', 'total_recharge')
+    def _auto_count_balance(self):
+        for account in self:
+            account.balance = account.total_recharge - account.total_spent
+
+    # @api.depends(transaction_ids.amount)
+    # def _auto_count_total_recharge(self):
+    #     for account in self:
+    #         total_recharge = sum(self.env['cyber.transaction'].search([
+    #             ('account_id', '=', account.id),
+    #             ('transaction_type', '=', 'topup')
+    #         ]).mapped('amount'))
+    #         account.total_recharge = total_recharge
+    
+
+
+
 
 class CyberCustomer(models.Model):
     _inherit = "cyber.customer"
@@ -60,3 +84,4 @@ class CyberCustomer(models.Model):
         inverse_name='customer_id',
         string='Accounts'
     )
+
