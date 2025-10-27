@@ -33,7 +33,7 @@ class CyberAccount(models.Model):
 
     # transaction_ids = fields.One2many(
     #     comodel_name='cyber.transaction',
-    #     inverse_name='account_id',
+    #     inverse_name='account_ids',
     #     string='Transactions'
     # )
 
