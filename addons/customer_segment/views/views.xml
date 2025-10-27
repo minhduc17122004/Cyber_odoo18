@@ -36,11 +36,16 @@
         <field name="view_mode">list,form</field>
       </record>
 
-      <menuitem id="menu_customer_segment_root" name="Customer Segments"/>
+      <menuitem id="menu_customer_segment_root" 
+                name="Cyber Customer Segments"
+                sequence="10"
+                groups="base.group_user"/>
+
       <menuitem id="menu_customer_segments"
                 name="Manage Segments"
                 parent="menu_customer_segment_root"
-                action="action_customer_segment"/>
+                action="action_customer_segment"
+                groups="base.group_user"/>
       
 
   </data>

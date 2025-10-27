@@ -1,0 +1,67 @@
+<odoo>
+  <data>
+    
+    <!-- Tạo form view cho cyber.account -->
+    <record id="view_cyber_account_form_in_customer" model="ir.ui.view">
+      <field name="name">cyber.account.form.in.customer</field>
+      <field name="model">cyber.account</field>
+      <field name="arch" type="xml">
+        <form>
+          <sheet>
+            <group>
+              <group>
+                <field name="username"/>
+                <field name="password" password="True"/>
+                <field name="customer_id" options="{'no_create': True}"/>
+                <field name="balance"/>
+                <field name="state"/>
+              </group>
+              <group>
+                <field name="play_time_total"/>
+                <field name="play_time_remaining"/>
+                <field name="total_spent"/>
+                <field name="total_recharge"/>
+                <field name="last_session_end"/>
+                <field name="last_topup_date"/>
+                <field name="last_spend_date"/>
+              </group>
+            </group>
+          </sheet>
+        </form>
+      </field>
+    </record>
+    
+    <!-- Tạo list view riêng cho cyber.account -->
+    <record id="view_cyber_account_list_in_customer" model="ir.ui.view">
+      <field name="name">cyber.account.list.in.customer</field>
+      <field name="model">cyber.account</field>
+      <field name="arch" type="xml">
+        <list>  <!-- Bỏ editable="bottom" -->
+          <field name="username"/>
+          <field name="balance"/>
+          <field name="play_time_total"/>
+          <field name="play_time_remaining"/>
+          <field name="total_spent"/>
+          <field name="state"/>
+        </list>
+      </field>
+    </record>
+    
+    <!-- Inherit form view của cyber.customer để thêm tab Accounts -->
+    <record id="view_cyber_customer_form_inherit_accounts" model="ir.ui.view">
+      <field name="name">cyber.customer.form.inherit.accounts</field>
+      <field name="model">cyber.customer</field>
+      <field name="inherit_id" ref="cyber_customer.view_cyber_customer_form"/>
+      <field name="arch" type="xml">
+        <xpath expr="//sheet" position="inside">
+          <notebook>
+            <page string="Accounts">
+              <field name="account_ids" nolabel="1"/>
+            </page>
+          </notebook>
+        </xpath>
+      </field>
+    </record>
+
+  </data>
+</odoo>

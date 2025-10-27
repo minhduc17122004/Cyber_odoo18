@@ -9,11 +9,14 @@ class CyberAccount(models.Model):
 
     username = fields.Char('Username', required=True)
     password = fields.Char('Password', required=True)
-    balance = fields.Float('Balance', digits=(10, 2), default=0.0)
+    balance = fields.Float(compute = '_auto_count_balance', string ='Balance', digits=(10, 2), default=0.0)
     play_time_total = fields.Float('Play Time (hours)', default=0.0)
     play_time_remaining = fields.Float('Play Time Remaining (hours)', default=0.0)
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
     total_recharge = fields.Float(string="Total Recharge", digits=(10, 2), default=0.0)
+    last_session_end = fields.Datetime(string="Last Session End")
+    last_topup_date = fields.Datetime(string="Last Top-up Date")
+    last_spend_date = fields.Datetime(string="Last Spend Date")
     created_at = fields.Datetime(string="Created At", default=fields.Datetime.now, readonly=True)
     updated_at = fields.Datetime(string="Updated At", default=fields.Datetime.now, readonly=True)
     state = fields.Selection([
@@ -27,6 +30,12 @@ class CyberAccount(models.Model):
         required=True,
         ondelete='cascade'
     )
+
+    # transaction_ids = fields.One2many(
+    #     comodel_name='cyber.transaction',
+    #     inverse_name='account_id',
+    #     string='Transactions'
+    # )
 
 
     def write(self, vals):
@@ -48,4 +57,31 @@ class CyberAccount(models.Model):
             res = super().unlink()
             customer._calculate_totals()
         return res
+    
+    @api.depends('total_spent', 'total_recharge')
+    def _auto_count_balance(self):
+        for account in self:
+            account.balance = account.total_recharge - account.total_spent
+
+    # @api.depends(transaction_ids.amount)
+    # def _auto_count_total_recharge(self):
+    #     for account in self:
+    #         total_recharge = sum(self.env['cyber.transaction'].search([
+    #             ('account_id', '=', account.id),
+    #             ('transaction_type', '=', 'topup')
+    #         ]).mapped('amount'))
+    #         account.total_recharge = total_recharge
+    
+
+
+
+
+class CyberCustomer(models.Model):
+    _inherit = "cyber.customer"
+
+    account_ids = fields.One2many(
+        comodel_name='cyber.account',
+        inverse_name='customer_id',
+        string='Accounts'
+    )
 

@@ -90,7 +90,7 @@
 
         <!-- ===== Menu ===== -->
         <menuitem id="menu_cyber_account_root"
-            name="Cyber Management"
+            name="Cyber Account"
             sequence="10"
             groups="base.group_user"/>
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Cyber Customer",
+    'name': "Cyber Customer Segments",
     'summary': "Module for Customer Segment",
     'author': "Toan Nguyen",
     'category': 'Uncategorized',
