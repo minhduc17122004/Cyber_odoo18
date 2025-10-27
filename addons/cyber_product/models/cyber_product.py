@@ -187,17 +187,3 @@ class CyberProduct(models.Model):
                     'is_supplier_cyber': True
                 })
                 record.supplier_component_id = partner.id
-
-    @api.ondelete(at_uninstall=False)
-    def _unlink_related_products(self):
-        """
-        Xóa cả product.template và product.product khi xóa cyber.product.
-        """
-        for rec in self:
-            # Lấy tất cả variant (product.product) liên kết với template đó
-            variants = self.env['product.product'].search([('product_tmpl_id', '=', rec.product_tmpl_id.id)])
-            # Xóa variant trước
-            variants.unlink()
-            # Sau đó xóa template
-            if rec.product_tmpl_id:
-                rec.product_tmpl_id.unlink()
