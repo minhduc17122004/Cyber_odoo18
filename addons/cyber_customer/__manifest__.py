@@ -8,7 +8,6 @@
     'depends': ['base', 'customer_segment'],
     'data': [
         'views/views.xml',
-        'views/templates.xml',
         'security/ir.model.access.csv',
     ],
     "application": True,
