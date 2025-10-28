@@ -13,7 +13,7 @@ class CyberTransaction(models.Model):
         required=True,
         ondelete='cascade'
     )
-    # username = fields.Char(related='account_id.username', string='Username', store=True)
+    username = fields.Char(related='account_id.username', string='Tên đăng nhập', readonly=True)
 
     type = fields.Selection([
         ('topup', 'Nạp tiền'),

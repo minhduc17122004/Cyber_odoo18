@@ -35,14 +35,17 @@ class CyberAccount(models.Model):
     compute="_compute_display_name",
     store=False
 )
-
     @api.depends('username')
     def _compute_display_name(self):
         """ hiển thị username thay cho 'cyber.account,ID'"""
         for record in self:
             record.display_name = record.username or f"Tài khoản #{record.id}"
 
-
+    # transaction_ids = fields.One2many(
+    #     comodel_name='cyber.transaction',
+    #     inverse_name='account_ids',
+    #     string='Transactions'
+    # )
 
     def write(self, vals):
         res = super().write(vals)
@@ -69,7 +72,15 @@ class CyberAccount(models.Model):
         for account in self:
             account.balance = account.total_recharge - account.total_spent
 
-
+    # @api.depends(transaction_ids.amount)
+    # def _auto_count_total_recharge(self):
+    #     for account in self:
+    #         total_recharge = sum(self.env['cyber.transaction'].search([
+    #             ('account_id', '=', account.id),
+    #             ('transaction_type', '=', 'topup')
+    #         ]).mapped('amount'))
+    #         account.total_recharge = total_recharge
+    
 class CyberCustomer(models.Model):
     _inherit = "cyber.customer"
 
@@ -78,3 +89,4 @@ class CyberCustomer(models.Model):
         inverse_name='customer_id',
         string='Accounts'
     )
+
