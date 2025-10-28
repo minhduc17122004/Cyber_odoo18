@@ -22,7 +22,9 @@
                                 <field name="payment_method" string="Phương thức thanh toán"/>
                             </group>
                             <group>
-                                <field name="amount" string="Số tiền"/>
+                                <field name="amount" string="Số tiền nạp/chi tiêu (₫)"/>
+                                <!-- ✅ Hiển thị bonus đã được tính tự động -->
+                                <field name="bonus_amount" string="Số tiền khuyến mãi (₫)" readonly="1"/>
                             </group>
                         </group>
                     </sheet>
@@ -38,7 +40,9 @@
                 <list string="Danh sách giao dịch" default_order="create_date desc">
                     <field name="account_id" string="Tài khoản"/>
                     <field name="type" string="Loại giao dịch"/>
-                    <field name="amount" string="Số tiền"/>
+                    <field name="amount" string="Số tiền (₫)"/>
+                    <!-- ✅ Thêm bonus_amount để dễ xem tổng cộng -->
+                    <field name="bonus_amount" string="Khuyến mãi (₫)"/>
                     <field name="payment_method" string="Phương thức thanh toán"/>
                     <field name="create_date" string="Ngày tạo"/>
                 </list>
