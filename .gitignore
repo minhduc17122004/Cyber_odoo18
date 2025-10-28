@@ -30,5 +30,12 @@ venv/
 env/
 ENV/
 
+#odoo specific
+*.db
+*.dump
+odoo_data/
+odoo-db-data/
+
 # Docker
 docker-compose.override.yml
+
