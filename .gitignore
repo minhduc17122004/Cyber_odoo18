@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-# Bỏ qua thư mục cyber_productV2 trong addons
-addons/cyber_productV2/
-
-# Bỏ qua tất cả các thư mục __pycache__ ở mọi nơi
-__pycache__/
-
-# Bỏ qua file docker-compose.yaml
-docker-compose.yaml
-
-# Bỏ qua file README.md
-README.md
-=======
 # Python
 *.pyc
 *.pyo
@@ -43,10 +30,6 @@ venv/
 env/
 ENV/
 
-# Docker
-docker-compose.yaml
-docker-compose.yml
-docker-compose.override.yml
 # pycache
 __pycache__/
 
@@ -61,4 +44,3 @@ odoo-db-data/
 WARP.md
 .warpindexingignore
 
->>>>>>> develop
