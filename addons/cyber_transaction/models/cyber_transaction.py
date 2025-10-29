@@ -59,39 +59,28 @@ class CyberTransaction(models.Model):
             transaction.bonus_amount = bonus
             # <<< ADD END
 
-            # Cập nhật số dư
-            account.balance += total_add
-
             # Cập nhật tổng số lần & ngày nạp gần nhất (nếu có field tương ứng)
             if hasattr(account, 'total_recharge'):
-                account.total_recharge += transaction.amount
+                account.total_recharge += total_add
             if hasattr(account, 'last_topup_date'):
-                account.last_topup_date = fields.Datetime.now()
-             #  tính giờ chơi từ số tiền nạp
-            added_hours = total_add / 20000.0  # 1 giờ = 20,000 VNĐ
-            account.play_time_total += added_hours
-            account.play_time_remaining += added_hours
-            # 
+                account.last_topup_date = transaction.create_date
 
         # Nếu là giao dịch chi tiêu
         elif transaction.type == 'spend':
             if transaction.amount > account.balance:
                 raise ValidationError(_("Số dư không đủ để thực hiện giao dịch chi tiêu."))
-            account.balance -= transaction.amount
-            #  trừ thời gian chơi tương ứng với số tiền chi tiêu
-            spent_hours = transaction.amount / 20000.0
-            account.play_time_remaining -= spent_hours
-            if account.play_time_remaining < 0:
-                account.play_time_remaining = 0
+            
+            account.total_spent += transaction.amount
+
             if hasattr(account, 'last_spend_date'):
-                account.last_spend_date = fields.Datetime.now()
+                account.last_spend_date = transaction.create_date
             # 
 
         # Lưu lại thay đổi
         account.sudo().write({
             'balance': account.balance,
-            'play_time_total': account.play_time_total,
-            'play_time_remaining': account.play_time_remaining,
+            'total_spent': account.total_spent,
+            'total_recharge': account.total_recharge,
         })
 
         return transaction

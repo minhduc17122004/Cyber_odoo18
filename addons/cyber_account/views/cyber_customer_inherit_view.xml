@@ -13,17 +13,17 @@
                 <field name="username"/>
                 <field name="password" password="True"/>
                 <field name="customer_id" options="{'no_create': True}"/>
-                <field name="balance"/>
                 <field name="state"/>
               </group>
               <group>
+                <field name="balance" readonly="1"/>
                 <field name="play_time_total"/>
-                <field name="play_time_remaining"/>
-                <field name="total_spent"/>
-                <field name="total_recharge"/>
-                <field name="last_session_end"/>
-                <field name="last_topup_date"/>
-                <field name="last_spend_date"/>
+                <field name="play_time_remaining" readonly="1"/>
+                <field name="total_spent" readonly="1"/>
+                <field name="total_recharge" readonly="1"/>
+                <field name="last_session_end" readonly="1"/>
+                <field name="last_topup_date" readonly="1"/>
+                <field name="last_spend_date" readonly="1"/>
               </group>
             </group>
           </sheet>
@@ -56,7 +56,7 @@
         <xpath expr="//sheet" position="inside">
           <notebook>
             <page string="Accounts">
-              <field name="account_ids" nolabel="1"/>
+              <field name="account_ids" nolabel="1" readonly="1"/>
             </page>
           </notebook>
         </xpath>

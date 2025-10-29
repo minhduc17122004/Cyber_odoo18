@@ -9,7 +9,7 @@ class CyberAccount(models.Model):
 
     username = fields.Char('Username', required=True)
     password = fields.Char('Password', required=True)
-    balance = fields.Float(compute = '_auto_count_balance', string ='Balance', digits=(10, 2), default=0.0)
+    balance = fields.Float(compute="_compute_balance", string='Balance', digits=(10, 2), default=0.0)
     play_time_total = fields.Float('Play Time (hours)', default=0.0)
     play_time_remaining = fields.Float('Play Time Remaining (hours)', default=0.0)
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
@@ -67,8 +67,8 @@ class CyberAccount(models.Model):
             customer._calculate_totals()
         return res
     
-    @api.depends('total_spent', 'total_recharge')
-    def _auto_count_balance(self):
+    @api.depends('total_recharge', 'total_spent')
+    def _compute_balance(self):
         for account in self:
             account.balance = account.total_recharge - account.total_spent
 
