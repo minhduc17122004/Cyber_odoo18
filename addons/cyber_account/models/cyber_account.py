@@ -11,7 +11,7 @@ class CyberAccount(models.Model):
     password = fields.Char('Password', required=True)
     balance = fields.Float(compute="_compute_balance", string='Balance', digits=(10, 2), default=0.0)
     play_time_total = fields.Float('Play Time (hours)', default=0.0)
-    play_time_remaining = fields.Float('Play Time Remaining (hours)', default=0.0)
+    play_time_remaining = fields.Float(compute = "_compute_play_time_remaining", string= 'Play Time Remaining (hours)', default=0.0)
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
     total_recharge = fields.Float(string="Total Recharge", digits=(10, 2), default=0.0)
     last_session_end = fields.Datetime(string="Last Session End")
@@ -41,12 +41,6 @@ class CyberAccount(models.Model):
         for record in self:
             record.display_name = record.username or f"Tài khoản #{record.id}"
 
-    # transaction_ids = fields.One2many(
-    #     comodel_name='cyber.transaction',
-    #     inverse_name='account_ids',
-    #     string='Transactions'
-    # )
-
     def write(self, vals):
         res = super().write(vals)
         for account in self:
@@ -72,14 +66,19 @@ class CyberAccount(models.Model):
         for account in self:
             account.balance = account.total_recharge - account.total_spent
 
-    # @api.depends(transaction_ids.amount)
-    # def _auto_count_total_recharge(self):
-    #     for account in self:
-    #         total_recharge = sum(self.env['cyber.transaction'].search([
-    #             ('account_id', '=', account.id),
-    #             ('transaction_type', '=', 'topup')
-    #         ]).mapped('amount'))
-    #         account.total_recharge = total_recharge
+    @api.depends('balance')
+    def _compute_play_time_remaining(self):
+        for account in self:
+            session = self.env['cyber.session'].search([
+                ('account_id', '=', account.id),
+                ('state', '=', 'running')
+            ], order='create_date desc', limit=1)
+
+            if session and session.price_per_hour > 0:
+                account.play_time_remaining = account.balance / session.price_per_hour
+            else:
+                account.play_time_remaining = 0.0
+
     
 class CyberCustomer(models.Model):
     _inherit = "cyber.customer"

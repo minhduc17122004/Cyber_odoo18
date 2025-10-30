@@ -13,6 +13,7 @@ class CyberCustomer(models.Model):
         ondelete="cascade",
         auto_join=True
     )
+
     dob = fields.Date(string="Date of Birth")
     join_date = fields.Date(string="Join Date", default=fields.Date.context_today)
     total_play_time = fields.Float(string="Total Play Time (hours)", default=0.0)

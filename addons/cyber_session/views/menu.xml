@@ -17,7 +17,7 @@
               action="action_cyber_session"
               sequence="10"/>
 
-    <!-- Account Menu -->
+    <!-- Account Menu
     <menuitem id="menu_cyber_account"
               name="Accounts"
               parent="menu_cyber_session_root"
@@ -27,7 +27,7 @@
               name="All Accounts"
               parent="menu_cyber_account"
               action="action_cyber_account"
-              sequence="10"/>
+              sequence="10"/> -->
 
     <!-- Configuration Menu -->
     <menuitem id="menu_cyber_session_config"
