@@ -6,10 +6,11 @@
       <field name="model">cyber.customer</field>
       <field name="arch" type="xml">
         <list string="Cyber Customers">
-          <field name="name"/> 
+          <field name="name"/>
+          <field name="segment_name"/>
           <field name="phone"/>
-          <field name="total_balance"/>
           <field name="join_date"/>
+          <field name="total_spent"/>
         </list>
       </field>
     </record>
@@ -26,9 +27,24 @@
               <field name="phone"/>
               <field name="dob"/>
               <field name="join_date"/>
-              <field name="total_play_time"/>
-              <field name="total_balance"/>
+              <field name="segment_name" readonly="1"/>
+              <field name="total_play_time" readonly="1"/>
+              <field name="total_spent" readonly="1"/>
+              <field name="created_at" readonly="1"/>
+              <field name="updated_at" readonly="1"/>
             </group>
+
+            <!-- <notebook>
+              <page string="Accounts">
+                <field name="account_ids">
+                  <list string="Accounts">
+                    <field name="username"/>
+                    <field name="balance"/>
+                    <field name="state"/>
+                  </list>
+                </field>
+              </page>
+            </notebook> -->
           </sheet>
         </form>
       </field>
@@ -42,7 +58,7 @@
     </record>
 
     <!-- Menu -->
-    <menuitem id="menu_cyber_root" name="Cyber"/>
+    <menuitem id="menu_cyber_root" name="Cyber Customer"/>
     <menuitem id="menu_cyber_customer"
               name="Khách hàng"
               parent="menu_cyber_root"

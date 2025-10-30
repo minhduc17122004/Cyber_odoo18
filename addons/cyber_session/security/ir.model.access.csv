@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_cyber_account,access_cyber_account,model_cyber_account,base.group_user,1,1,1,1
+access_cyber_transaction,access_cyber_transaction,model_cyber_transaction,base.group_user,1,1,1,1
+access_cyber_session,access_cyber_session,model_cyber_session,base.group_user,1,1,1,1

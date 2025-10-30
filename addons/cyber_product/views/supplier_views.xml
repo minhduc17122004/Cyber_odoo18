@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- ======= Tree View (List) ======= -->
+    <record id="view_cyber_supplier_list" model="ir.ui.view">
+        <field name="name">cyber.supplier.list</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list string="Nhà cung cấp Cyber">
+                <field name="name"/>
+                <field name="supplier_type"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="is_supplier_cyber"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ======= Form View (Kế thừa form gốc) ======= -->
+    <record id="view_cyber_supplier_form" model="ir.ui.view">
+        <field name="name">cyber.supplier.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Thêm supplier_type ngay sau name -->
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="supplier_type"/>
+            </xpath>
+
+            <!-- Thêm is_supplier_cyber ngay sau email -->
+            <xpath expr="//field[@name='email']" position="after">
+                <field name="is_supplier_cyber"/>
+            </xpath>
+
+            <!-- Thêm supplier_note cuối sheet -->
+            <xpath expr="//sheet" position="inside">
+                <field name="supplier_note"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ======= Action ======= -->
+    <record id="action_cyber_supplier" model="ir.actions.act_window">
+        <field name="name">Nhà cung cấp Cyber</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_cyber_supplier_list"/>
+        <field name="domain">[('is_supplier_cyber','=',True)]</field>
+        <field name="context">{'default_is_supplier_cyber': True}</field>
+    </record>
+
+    <!-- ======= Menu ======= -->
+    <menuitem id="menu_cyber_supplier"
+              name="Nhà cung cấp"
+              parent="menu_cyber_product_sub"
+              action="action_cyber_supplier"
+              sequence="6"/>
+</odoo>

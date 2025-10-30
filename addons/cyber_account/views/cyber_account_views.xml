@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- ===== Form View ===== -->
+        <record id="cyber_account_form_view" model="ir.ui.view">
+            <field name="name">cyber.account.form.view</field>
+            <field name="model">cyber.account</field>
+            <field name="arch" type="xml">
+                <form string="Cyber Account">
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="username" string="Username" class="oe_edit_only"/>
+                            <h1><field name="username" placeholder="e.g. gamer01"/></h1>
+                            <label for="password" string="Password" class="oe_edit_only"/>
+                            <h1><field name="password" placeholder="e.g. ********" /></h1>
+                        </div>
+
+                        <group name="main_info">
+                            <group>
+                                <field name="customer_id" options="{'no_create': True}"/>
+                                <field name="balance"/>
+                                <field name="play_time_total"/>
+                                <field name="play_time_remaining"/>
+                                <field name="total_spent"/>
+                                <field name="total_recharge"/>
+                                <field name="state"/>
+                                <field name="created_at"/>
+                                <field name="updated_at"/>
+                            </group>
+                            <!-- <group>
+                                <field name="discount_id"/>
+                                <field name="state" widget="statusbar" statusbar_visible="active,inactive"/>
+                            </group> -->
+                        </group>
+
+                        <!-- Đã gỡ bỏ field last_session -->
+
+                        <notebook>
+                            <!-- <page string="Sessions">
+                                <field name="session_ids">
+                                    <tree string="Sessions">
+                                        <field name="name"/>
+                                        <field name="product_mac"/>
+                                        <field name="start_time"/>
+                                        <field name="end_time"/>
+                                        <field name="price"/>
+                                        <field name="state"/>
+                                    </tree>
+                                </field>
+                            </page> -->
+
+                            <!-- <page string="Transactions">
+                                <field name="transaction_ids">
+                                    <tree string="Transactions">
+                                        <field name="type"/>
+                                        <field name="invoice_id"/>
+                                        <field name="amount"/>
+                                        <field name="payment_method"/>
+                                        <field name="create_date"/>
+                                    </tree>
+                                </field>
+                            </page> -->
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- ===== Tree View ===== -->
+        <record id="cyber_account_tree_view" model="ir.ui.view">
+            <field name="name">cyber.account.tree.view</field>
+            <field name="model">cyber.account</field>
+            <field name="arch" type="xml">
+                <list string="Cyber Accounts" default_order="create_date desc">
+                    <field name="username"/>
+                    <field name="customer_id"/>
+                    <field name="balance"/>
+                    <field name="state"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- ===== Action ===== -->
+        <record id="action_cyber_account" model="ir.actions.act_window">
+            <field name="name">Cyber Account</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">cyber.account</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <!-- ===== Menu ===== -->
+        <menuitem id="menu_cyber_account_root"
+            name="Cyber Account"
+            sequence="10"
+            groups="base.group_user"/>
+
+        <menuitem id="menu_cyber_account"
+            name="Accounts"
+            parent="menu_cyber_account_root"
+            action="action_cyber_account"
+            sequence="20"
+            groups="base.group_user"/>
+    </data>
+</odoo>
