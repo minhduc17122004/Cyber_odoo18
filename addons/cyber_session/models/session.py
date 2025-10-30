@@ -7,7 +7,7 @@ class CyberSession(models.Model):
 
     name = fields.Char(string='Session Name', required=True, default=lambda self: _('New'))
     account_id = fields.Many2one('cyber.account', string='Account', required=True, ondelete='cascade')
-    machine_id = fields.Many2one('product.product', string='Machine', required=True, domain=[('is_machine', '=', True)])
+    # machine_id = fields.Many2one('product.product', string='Machine', required=True, domain=[('is_machine', '=', True)])
     start_time = fields.Datetime(string='Start Time', default=fields.Datetime.now)
     end_time = fields.Datetime(string='End Time')
     duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True)
@@ -78,3 +78,30 @@ class CyberSession(models.Model):
                 acc.customer_id.update_from_session(rec)
 
             rec.state = 'closed'
+
+    def _compare_last_session_create_date(self):
+        for session in self:
+            last_transaction = self.env['cyber.transaction'].search([
+                ('account_id', '=', session.account_id.id),
+                ('type', '=', 'spend')
+            ], order='create_date desc', limit=1)
+
+            if last_transaction:
+                create_date = last_transaction.create_date
+                session.account_id.last_spend_date = create_date
+
+                if session.account_id.last_session_end and session.account_id.last_session_end >= create_date:
+                    session.account_id.last_spend_date = session.account_id.last_session_end
+
+
+    def action_close_session(self):
+        for session in self:
+            session.end_time = fields.Datetime.now()
+            session.state = 'closed'
+            
+            if session.account_id:
+                session.account_id.total_spent += session.total_cost
+                session.account_id.play_time_total += session.duration
+                session.account_id.last_session_end = session.end_time
+                session._compare_last_session_create_date()
+        return True
