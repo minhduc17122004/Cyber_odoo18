@@ -1,5 +1,6 @@
 from datetime import timedelta
-from odoo import models, fields, api, exceptions, _
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
 
 class CyberSession(models.Model):
@@ -7,9 +8,11 @@ class CyberSession(models.Model):
     _description = 'Cyber Game Session'
     _inherit = ['mail.thread']
 
+    # ========================
+    # FIELDS
+    # ========================
     name = fields.Char(string='Session Name', required=True, default=lambda self: _('New'))
     account_id = fields.Many2one('cyber.account', string='Account', required=True, ondelete='cascade')
-    # machine_id = fields.Many2one('product.product', string='Machine', required=True, domain=[('is_machine', '=', True)])
     start_time = fields.Datetime(string='Start Time', default=fields.Datetime.now)
     end_time = fields.Datetime(string='End Time')
     end_time_expected = fields.Datetime(string='Expected End Time', compute='_compute_end_time_expected', store=True)
@@ -27,85 +30,117 @@ class CyberSession(models.Model):
     # ========================
     @api.depends('start_time', 'end_time')
     def _compute_duration(self):
+        """Tính thời lượng phiên chơi"""
         for rec in self:
             if rec.start_time and rec.end_time:
                 delta = rec.end_time - rec.start_time
                 rec.duration = round(delta.total_seconds() / 3600, 2)
             else:
-                rec.duration = 0
+                rec.duration = 0.0
 
     @api.depends('duration', 'price_per_hour')
     def _compute_total_cost(self):
+        """Tính tổng chi phí"""
         for rec in self:
             rec.total_cost = round(rec.duration * rec.price_per_hour, 2)
- 
+
     @api.depends('account_id.play_time_remaining_seconds', 'start_time')
     def _compute_end_time_expected(self):
+        """Tính thời gian kết thúc dự kiến dựa trên play_time_remaining_seconds"""
         for rec in self:
-            account_id = rec.account_id
-            if account_id and rec.start_time and account_id.play_time_remaining_seconds > 0:
-                expected_end = rec.start_time + timedelta(seconds=account_id.play_time_remaining_seconds)
-                rec.end_time_expected = expected_end
+            acc = rec.account_id
+            if acc and rec.start_time and acc.play_time_remaining_seconds > 0:
+                rec.end_time_expected = rec.start_time + timedelta(seconds=acc.play_time_remaining_seconds)
             else:
                 rec.end_time_expected = False
 
     # ========================
-    # ACTION METHODS
+    # MAIN LOGIC
     # ========================
-    # def action_start(self):
-    #     for rec in self:
-    #         if rec.account_id.balance <= 0:
-    #             raise exceptions.UserError(_('Insufficient balance. Please top up first.'))
-    #         rec.start_time = fields.Datetime.now()
-    #         rec.state = 'running'
+    def _finalize_close(self):
+        """Xử lý khi session kết thúc"""
+        for rec in self:
+            acc = rec.account_id
+            if not acc:
+                continue
 
-    def action_closed(self):
+            # Cập nhật thời lượng & chi phí
+            rec._compute_duration()
+            rec._compute_total_cost()
+
+            # Cập nhật account
+            acc.total_spent += rec.total_cost
+            acc.play_time_total += rec.duration
+            acc.last_session_end = rec.end_time
+            acc._compute_balance()
+
+            # Cập nhật customer
+            if acc.customer_id:
+                acc.customer_id._calculate_totals()
+
+            rec.state = 'closed'
+            rec.message_post(body=_("Session closed automatically at %s.") % rec.end_time)
+        return True
+
+    def _close_if_expired(self):
+        """Kiểm tra nếu hết giờ thì đóng ngay"""
+        now = fields.Datetime.now()
+        for rec in self:
+            if rec.state == 'running' and rec.end_time_expected and now >= rec.end_time_expected:
+                # Ghi trực tiếp vào DB mà không tái gọi _close_if_expired
+                rec.with_context(skip_check=True).sudo().write({
+                    'end_time': rec.end_time_expected,
+                    'state': 'closed'
+                })
+                rec._finalize_close()
+
+    def action_close_manual(self):
+        """Đóng thủ công"""
         for rec in self:
             if rec.state == 'closed':
                 continue
-            rec.end_time = rec.end_time_expected
-            
-            if rec.account_id:
-                rec.account_id.play_time_total += rec.duration
-                rec.account_id.total_spent += rec.total_cost
-                rec.account_id.last_session_end = rec.end_time
-
-            rec._compare_last_session_create_date()
-            
-            rec.state = 'closed'
-
-    def _compare_last_session_create_date(self):
-        for session in self:
-            last_transaction = self.env['cyber.transaction'].search([
-                ('account_id', '=', session.account_id.id),
-                ('type', '=', 'spend')
-            ], order='create_date desc', limit=1)
-
-            if last_transaction:
-                create_date = last_transaction.create_date
-                session.account_id.last_spend_date = create_date
-
-                if session.account_id.last_session_end and session.account_id.last_session_end >= create_date:
-                    session.account_id.last_spend_date = session.account_id.last_session_end
-
-
-    def action_close_session(self):
-        for session in self:
-            session.end_time = fields.Datetime.now()
-            session.state = 'closed'
-            
-            if session.account_id:
-                session.account_id.total_spent += session.total_cost
-                session.account_id.play_time_total += session.duration
-                session.account_id.last_session_end = session.end_time
-                session._compare_last_session_create_date()
+            rec.end_time = fields.Datetime.now()
+            rec._finalize_close()
         return True
-    
+
+    # ========================
+    # OVERRIDE METHODS
+    # ========================
+    def read(self, fields=None, load='_classic_read'):
+        """Mỗi lần mở view, kiểm tra và đóng nếu quá hạn"""
+        self._close_if_expired()
+        return super().read(fields, load)
+
+    def write(self, vals):
+        """Mỗi lần ghi dữ liệu, kiểm tra lại"""
+        res = super().write(vals)
+        # Nếu context có flag thì bỏ qua kiểm tra
+        if not self.env.context.get('skip_check'):
+            self._close_if_expired()
+        return res
+
+    # ========================
+    # CRON DỰ PHÒNG
+    # ========================
+    @api.model
     def cron_close_expired_sessions(self):
+        """Cron mỗi phút để đóng các phiên quá hạn"""
         now = fields.Datetime.now()
         sessions = self.search([
             ('state', '=', 'running'),
             ('end_time_expected', '<=', now)
         ])
-        for session in sessions:
-            session.action_closed()
+        if sessions:
+            sessions._close_if_expired()
+            _logger = self.env['ir.logging']
+            _logger.create({
+                'name': 'Cyber Session Auto-Close',
+                'type': 'server',
+                'dbname': self.env.cr.dbname,
+                'level': 'INFO',
+                'message': f"Closed {len(sessions)} expired sessions at {now}",
+                'path': 'cyber.session',
+                'line': '0',
+                'func': 'cron_close_expired_sessions',
+            })
+        return True

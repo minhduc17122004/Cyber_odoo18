@@ -24,7 +24,7 @@
 <field name="arch" type="xml">
 <form string="Cyber Session">
 <header>
-<button name="action_close_session" string="Close Session" type="object" invisible="state == 'closed'" class="oe_highlight"/>
+<button name="action_close_manual" string="Close Session" type="object" invisible="state == 'closed'" class="oe_highlight"/>
 <field name="state" widget="statusbar" statusbar_visible="running,closed"/>
 </header>
 <sheet>
@@ -103,4 +103,4 @@
 <field name="view_mode">list,form</field>
 </record> -->
 
-</odoo>
+</odoo> 
