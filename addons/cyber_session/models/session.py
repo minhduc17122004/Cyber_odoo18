@@ -13,6 +13,7 @@ class CyberSession(models.Model):
     # ========================
     name = fields.Char(string='Session Name', required=True, default=lambda self: _('New'))
     account_id = fields.Many2one('cyber.account', string='Account', required=True, ondelete='cascade')
+    product_machine_id = fields.Many2one('product.product', string='Machine', domain=[('is_machine', '=', True)])
     start_time = fields.Datetime(string='Start Time', default=fields.Datetime.now)
     end_time = fields.Datetime(string='End Time')
     end_time_expected = fields.Datetime(string='Expected End Time', compute='_compute_end_time_expected', store=True)
@@ -24,6 +25,8 @@ class CyberSession(models.Model):
         ('running', 'Running'),
         ('closed', 'Closed')
     ], string='Status', default='running', tracking=True)
+
+    order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
 
     # ========================
     # COMPUTE METHODS
