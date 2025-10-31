@@ -1,4 +1,4 @@
-services:
+
   web:
     image: odoo:18.0
     container_name: odoo
@@ -31,3 +31,4 @@ services:
 
 volumes:
   odoo-db-data:
+

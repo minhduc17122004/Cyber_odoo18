@@ -4,7 +4,7 @@
     'summary': """Quản lý giao dịch tài khoản trong quán net""",
     'description': """Lưu trữ và quản lý các giao dịch nạp tiền, chi tiêu của tài khoản khách hàng.""",
     'author': "Minh Quân",
-    'category': 'Cyber Management',
+    'category': 'Cyber',
     'version': '0.1',
     'depends': [
         'base',         

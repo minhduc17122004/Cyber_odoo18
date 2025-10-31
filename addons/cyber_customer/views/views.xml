@@ -10,6 +10,7 @@
           <field name="segment_name"/>
           <field name="phone"/>
           <field name="join_date"/>
+          <field name="total_spent"/>
         </list>
       </field>
     </record>
@@ -23,10 +24,10 @@
           <sheet>
             <group>
               <field name="name"/>
-              <field name="segment_id"/>
               <field name="phone"/>
               <field name="dob"/>
               <field name="join_date"/>
+              <field name="segment_name" readonly="1"/>
               <field name="total_play_time" readonly="1"/>
               <field name="total_spent" readonly="1"/>
               <field name="created_at" readonly="1"/>
