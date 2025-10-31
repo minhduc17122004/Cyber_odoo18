@@ -7,9 +7,8 @@
     'depends': ['base', 'mail', 'product', 'cyber_account'],
     'data': [
         'security/ir.model.access.csv',
-        # 'views/cyber_account_views.xml',
-        # 'views/cyber_transaction_views.xml',
         'views/cyber_session_views.xml',
+        'views/cyber_sale_order_in_session_views.xml',
         'views/menu.xml',
         'data/cron_close_sessions.xml',
     ],

@@ -18,6 +18,7 @@ class CyberCustomer(models.Model):
     join_date = fields.Date(string="Join Date", default=fields.Date.context_today)
     total_play_time = fields.Float(string="Total Play Time (hours)", default=0.0)
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
+    total_recharge = fields.Float(string="Total Recharge", digits=(10, 2), default=0.0)
 
     segment_id = fields.Many2one(
         'customer.segment',
@@ -83,3 +84,4 @@ class CyberCustomer(models.Model):
             ])
             customer.total_play_time = sum(acc.play_time_total for acc in accounts)
             customer.total_spent = sum(acc.total_spent for acc in accounts)
+            customer.total_recharge = sum(acc.total_recharge for acc in accounts)

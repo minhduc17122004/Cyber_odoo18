@@ -1,37 +1,20 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Root Menu -->
     <menuitem id="menu_cyber_session_root"
-              name="Cyber Session"
+              name="Cyber Sessions"
               sequence="10"/>
 
     <!-- Session Menu -->
     <menuitem id="menu_cyber_session"
               name="Sessions"
               parent="menu_cyber_session_root"
-              sequence="10"/>
-
-    <menuitem id="menu_cyber_session_all"
-              name="All Sessions"
-              parent="menu_cyber_session"
               action="action_cyber_session"
               sequence="10"/>
 
-    <!-- Account Menu
-    <menuitem id="menu_cyber_account"
-              name="Accounts"
+    <!-- Orders Menu -->
+    <menuitem id="menu_cyber_sale_order_in_session"
+              name="Orders in Session"
               parent="menu_cyber_session_root"
+              action="action_cyber_sale_order_in_session"
               sequence="20"/>
-
-    <menuitem id="menu_cyber_account_all"
-              name="All Accounts"
-              parent="menu_cyber_account"
-              action="action_cyber_account"
-              sequence="10"/> -->
-
-    <!-- Configuration Menu -->
-    <menuitem id="menu_cyber_session_config"
-              name="Configuration"
-              parent="menu_cyber_session_root"
-              sequence="100"/>
 </odoo>
