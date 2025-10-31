@@ -4,7 +4,7 @@
     'summary': """Quản lý hóa đơn thanh toán trong quán net""",
     'description': """Lưu trữ và quản lý các hóa đơn thanh toán của khách hàng, liên kết với giao dịch và thông tin khách hàng.""",
     'author': "Minh Quân",
-    'category': 'Cyber Management',
+    'category': 'Cyber',
     'version': '0.1',
     'depends': [
         'base',
