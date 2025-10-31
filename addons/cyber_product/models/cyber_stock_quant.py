@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 class CyberStockQuant(models.Model):
     _name = 'cyber.stock.quant'
@@ -19,7 +20,6 @@ class CyberStockQuant(models.Model):
     write_uid = fields.Many2one('res.users', string='Người cập nhật', readonly=True)
     write_date = fields.Datetime(string='Ngày cập nhật', readonly=True)
     note = fields.Text(string='Ghi chú')
-    move_ids = fields.One2many('stock.move', 'cyber_quant_id', string='Liên kết Move')
 
     @api.model
     def create_initial_stock(self, product, qty):
@@ -30,12 +30,20 @@ class CyberStockQuant(models.Model):
         })
         return quant
 
+    @api.constrains('quantity')
+    def _check_positive(self):
+        for rec in self:
+            if rec.quantity < 0:
+                raise ValidationError("Số lượng tồn không được âm.")
+
     def increase_stock(self, qty):
+        self.ensure_one()
         self.quantity += qty
-        self.last_update = fields.Datetime.now()
+        self.in_date = fields.Datetime.now()
 
     def decrease_stock(self, qty):
+        self.ensure_one()
         if qty > self.quantity:
-            raise ValueError("Không đủ hàng tồn để xuất!")
+            raise ValidationError("Không đủ tồn kho để xuất.")
         self.quantity -= qty
-        self.last_update = fields.Datetime.now()
+        self.in_date = fields.Datetime.now()

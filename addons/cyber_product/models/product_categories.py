@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 class ProductCategory(models.Model):
     _inherit = "product.category"
@@ -8,6 +9,7 @@ class ProductCategory(models.Model):
         ('good', 'Hàng hóa'),
         ('component', 'Linh kiện')
     ], string="Loại danh mục", required=True)
+    price_per_hours = fields.Float(string="Giá dịch vụ (VNĐ/giờ)")
 
     @api.model
     def default_get(self, fields_list):
@@ -15,3 +17,10 @@ class ProductCategory(models.Model):
         if self._context.get('default_category_type'):
             res['category_type'] = self._context['default_category_type']
         return res
+
+    @api.constrains('price_per_hours', 'category_type')
+    def _check_price_per_hours_service(self):
+        for rec in self:
+            if rec.category_type != 'service' and rec.price_per_hours:
+                raise ValidationError("Chỉ category loại service mới được nhập giá dịch vụ.")
+    

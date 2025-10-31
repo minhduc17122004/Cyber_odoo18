@@ -37,25 +37,20 @@ class CyberStockMove(models.Model):
                         f"Sản phẩm {move.product_id.display_name} không đủ tồn kho để xuất!"
                     )
 
-    def _update_stock_quant(self, qty_change):
-        """Cập nhật stock.quant và cyber_product.quantity"""
+    def _update_cyber_quant(self, qty_change):
+        """Cập nhật CyberQuant sau khi move hoàn tất"""
         for move in self:
-            variant = move.product_id
-            quant = self.env['stock.quant'].search([
-                ('product_id', '=', variant.id)
+            if not move.cyber_product_id:
+                continue
+            quant = self.env['cyber.stock.quant'].search([
+                ('cyber_product_id', '=', move.cyber_product_id.id)
             ], limit=1)
             if not quant:
-                location = move.location_dest_id if qty_change > 0 else move.location_id
-                quant = self.env['stock.quant'].create({
-                    'product_id': variant.id,
-                    'location_id': location.id,
+                quant = self.env['cyber.stock.quant'].create({
+                    'cyber_product_id': move.cyber_product_id.id,
+                    'product_id': move.cyber_product_id.product_tmpl_id.id,
                     'quantity': 0.0,
                     'in_date': fields.Datetime.now(),
                 })
-            quant.sudo().quantity += qty_change
-            quant.sudo().write({'in_date': fields.Datetime.now()})
-
-            # Cập nhật cyber_product
-            if move.cyber_product_id:
-                move.cyber_product_id.quantity += qty_change
-                move.cyber_product_id.update_at = fields.Datetime.now()
+            quant.quantity += qty_change
+            quant.in_date = fields.Datetime.now()

@@ -48,7 +48,7 @@
         </field>
     </record>
 
-    <menuitem id="menu_cyber_stock_root" name="Inventory" parent="menu_cyber_inventory_root" sequence="20"/>
+    <menuitem id="menu_cyber_stock_root" name="Inventory" sequence="20"/>
     <menuitem id="menu_cyber_stock_quant" name="Tồn kho sản phẩm" parent="menu_cyber_stock_root" sequence="1"/>
 
         <!-- ACTION TỒN KHO -->

@@ -12,7 +12,6 @@ class CyberProduct(models.Model):
         required=True,
         ondelete='cascade'
     )
-    type = fields.Selection(related='product_tmpl_id.type', store=True, readonly=False, default='product')
     quant_ids = fields.One2many('cyber.stock.quant', 'cyber_product_id', string="Tồn kho")
     # Phân loại sản phẩm
     is_machine = fields.Boolean(string="Là máy dịch vụ", default=False)
@@ -143,8 +142,6 @@ class CyberProduct(models.Model):
             if sum(flags) == 0:
                 raise ValidationError("Phải chọn một loại sản phẩm (Service, Good hoặc Component).")
     
-   
-    
     def write(self, vals):
         # --- Không cập nhật update_at nếu chỉ thay đổi quantity_init ---
         ignore_fields = {'quantity_init'}
@@ -153,7 +150,7 @@ class CyberProduct(models.Model):
 
         return super(CyberProduct, self).write(vals)
 
-    # --- Không cho sửa lại sau khi tạo ---
+    # --- Không cho sửa lại sau khi tạo số lượng ban đầu ---
     @api.onchange('id')
     def _onchange_id_disable_quantity_init(self):
         if self.id:
@@ -179,33 +176,31 @@ class CyberProduct(models.Model):
         }
     
     # --- Nút mở danh sách stock.quant cho sản phẩm này ---
-    def action_view_quants(self):
+    def action_view_stock_quants(self):
         self.ensure_one()
-        variant = self.product_tmpl_id.product_variant_id
-        domain = [('product_id', '=', variant.id)] if variant else [('id', '=', False)]
         return {
-            'name': 'Tồn kho (Quants)',
             'type': 'ir.actions.act_window',
-            'res_model': 'stock.quant',
-            'view_mode': 'tree,form',
-            'domain': domain,
+            'name': 'Tồn kho sản phẩm',
+            'res_model': 'cyber.stock.quant',
+            'view_mode': 'list,form',
             'target': 'current',
+            'domain': [('cyber_product_id', '=', self.id)],
+            'context': {'default_cyber_product_id': self.id},
         }
 
     # --- Nút mở lịch sử move (phiếu nhập/xuất) cho sản phẩm này ---
     def action_view_moves(self):
         self.ensure_one()
-        variant = self.product_tmpl_id.product_variant_id
-        domain = [('product_id', '=', variant.id)] if variant else [('id', '=', False)]
         return {
-            'name': 'Lịch sử nhập/xuất',
             'type': 'ir.actions.act_window',
+            'name': 'Lịch sử nhập/xuất',
             'res_model': 'stock.move',
-            'view_mode': 'tree,form',
-            'domain': domain,
+            'view_mode': 'list,form',
             'target': 'current',
+            'domain': [('cyber_product_id', '=', self.id)],
+            'context': {'default_cyber_product_id': self.id},
         }
-    
+
     @api.model
     def create(self, vals):
         # 0. Nếu supplier_* được truyền là tên (string) -> tạo partner trước để gán vào vals
@@ -223,10 +218,16 @@ class CyberProduct(models.Model):
                 'list_price': vals.get('list_price', 0.0),
                 'standard_price': vals.get('standard_price', 0.0),
                 'barcode': vals.get('barcode', False),
-                'type': 'good',
             }
             tmpl = self.env['product.template'].create(tmpl_vals)
             vals['product_tmpl_id'] = tmpl.id
+
+        # --- Gán giá dịch vụ tự động nếu có category service ---
+        if vals.get('service_category_id'):
+            category = self.env['product.category'].browse(vals['service_category_id'])
+            if category.category_type == 'service' and category.price_list:
+                vals['price_per_hour'] = category.price_list
+
 
         # 2. Ghi timestamp tạo/sửa nội bộ (riêng cho product info)
         vals['create_at'] = fields.Datetime.now()
@@ -245,7 +246,7 @@ class CyberProduct(models.Model):
             # Tạo record trong cyber.stock.quant
             self.env['cyber.stock.quant'].create({
                 'cyber_product_id': product.id,
-                'product_id': variant.id,
+                'product_id': product.product_tmpl_id.id,
                 'quantity': quantity_init,
                 'in_date': fields.Datetime.now(),
             })
@@ -265,6 +266,11 @@ class CyberProduct(models.Model):
         if templates_to_delete:
             templates_to_delete.unlink()
         return res
+
+    def write(self, vals):
+        if 'quantity_init' in vals:
+            vals.pop('quantity_init')  # vô hiệu hóa field khi edit
+        return super().write(vals)
 
     # inverse suppliers: tạo partner nếu người dùng nhập trực tiếp record không có id (rare)
     def _inverse_supplier_service_id(self):
@@ -296,9 +302,33 @@ class CyberProduct(models.Model):
         })
         return partner.id
     
+    def unlink(self):
+        CyberQuant = self.env['cyber.stock.quant']
+        for record in self:
+            # Tìm các bản ghi tồn kho có liên kết tới sản phẩm này
+            quants = CyberQuant.search([
+                ('cyber_product_id', '=', record.id)
+            ])
+            if quants:
+                quants.unlink()
+        # Sau đó mới xóa sản phẩm
+        return super(CyberProduct, self).unlink()
+    
     @api.onchange('product_tmpl_id')
     def _onchange_force_type(self):
         # Ép type luôn là 'product' nếu user chọn template khác
         for rec in self:
             if rec.product_tmpl_id and rec.product_tmpl_id.type != 'product':
                 rec.product_tmpl_id.type = 'product'
+    
+        # --- Onchange: Tự động áp giá từ Category Service ---
+    price_editable = fields.Boolean(default=True)
+    @api.onchange('service_category_id')
+    def _onchange_service_category(self):
+        for rec in self:
+            if rec.service_category_id and rec.service_category_id.category_type == 'service':
+                rec.price_per_hour = rec.service_category_id.price_per_hours
+            else:
+                rec.price_per_hour = 0.0
+
+
