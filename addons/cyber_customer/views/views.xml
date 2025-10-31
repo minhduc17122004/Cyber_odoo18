@@ -10,7 +10,9 @@
           <field name="segment_name"/>
           <field name="phone"/>
           <field name="join_date"/>
+          <field name="total_recharge"/>
           <field name="total_spent"/>
+          <field name="total_play_time"/>
         </list>
       </field>
     </record>

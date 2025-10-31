@@ -7,19 +7,20 @@ class CyberSession(models.Model):
     _name = 'cyber.session'
     _description = 'Cyber Game Session'
     _inherit = ['mail.thread']
+    _order = 'name desc'
 
     # ========================
     # FIELDS
     # ========================
-    name = fields.Char(string='Session Name', required=True, default=lambda self: _('New'))
+    name = fields.Char(string='Session ID', required=True, readonly=True, copy=False, default='New')
     account_id = fields.Many2one('cyber.account', string='Account', required=True, ondelete='cascade')
     product_machine_id = fields.Many2one('product.product', string='Machine', domain=[('is_machine', '=', True)])
-    start_time = fields.Datetime(string='Start Time', default=fields.Datetime.now)
+    start_time = fields.Datetime(string='Start Time', default=lambda self: fields.Datetime.now())
     end_time = fields.Datetime(string='End Time')
     end_time_expected = fields.Datetime(string='Expected End Time', compute='_compute_end_time_expected', store=True)
-    duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True)
-    price_per_hour = fields.Float(string='Price per Hour', required=True)
-    total_cost = fields.Monetary(string='Total Cost', currency_field='currency_id', compute='_compute_total_cost', store=True)
+    duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True, digits=(12, 6))
+    price_per_hour = fields.Float(string='Price per Hour (VND)', required=True, digits=(16, 0))
+    total_cost = fields.Float(string='Total Cost (VND)', compute='_compute_total_cost', store=True, digits=(16, 0))
     currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
     state = fields.Selection([
         ('running', 'Running'),
@@ -37,15 +38,17 @@ class CyberSession(models.Model):
         for rec in self:
             if rec.start_time and rec.end_time:
                 delta = rec.end_time - rec.start_time
-                rec.duration = round(delta.total_seconds() / 3600, 2)
+                rec.duration = delta.total_seconds() / 3600
             else:
                 rec.duration = 0.0
 
-    @api.depends('duration', 'price_per_hour')
+    @api.depends('duration', 'price_per_hour', 'order_ids.line_total')
     def _compute_total_cost(self):
-        """Tính tổng chi phí"""
+        """Tính tổng chi phí = (duration * price_per_hour) + tổng orders"""
         for rec in self:
-            rec.total_cost = round(rec.duration * rec.price_per_hour, 2)
+            session_cost = rec.duration * rec.price_per_hour
+            orders_cost = sum(rec.order_ids.mapped('line_total'))
+            rec.total_cost = round(session_cost + orders_cost)
 
     @api.depends('account_id.play_time_remaining_seconds', 'start_time')
     def _compute_end_time_expected(self):
@@ -81,9 +84,21 @@ class CyberSession(models.Model):
             if acc.customer_id:
                 acc.customer_id._calculate_totals()
 
+            # Tạo transaction loại 'spend' khi đóng session
+            # self.env['cyber.transaction'].create({
+            #     'account_id': acc.id,
+            #     'session_id': rec.id,
+            #     'amount': -rec.total_cost,
+            #     'type': 'spend',
+            #     'date': fields.Datetime.now(),
+            # })
+
+            # Cập nhật trạng thái và log
             rec.state = 'closed'
             rec.message_post(body=_("Session closed automatically at %s.") % rec.end_time)
+
         return True
+
 
     def _close_if_expired(self):
         """Kiểm tra nếu hết giờ thì đóng ngay"""
@@ -97,6 +112,14 @@ class CyberSession(models.Model):
                 })
                 rec._finalize_close()
 
+    def _auto_close_if_out_of_balance(self):
+        """Tự động đóng session nếu tổng chi phí vượt quá số dư"""
+        for rec in self:
+            if rec.state == 'running' and rec.account_id:
+                if rec.total_cost > rec.account_id.balance:
+                    rec.end_time = fields.Datetime.now()
+                    rec._finalize_close()
+
     def action_close_manual(self):
         """Đóng thủ công"""
         for rec in self:
@@ -109,6 +132,15 @@ class CyberSession(models.Model):
     # ========================
     # OVERRIDE METHODS
     # ========================
+    @api.model
+    def create(self, vals):
+        """Tự động tạo Session ID dựa trên timestamp khi tạo session"""
+        if vals.get('name', 'New') == 'New':
+            # Format: SES + YYYYMMDDHHMMSS
+            timestamp = fields.Datetime.now().strftime('%Y%m%d%H%M%S')
+            vals['name'] = f'SES{timestamp}'
+        return super(CyberSession, self).create(vals)
+
     def read(self, fields=None, load='_classic_read'):
         """Mỗi lần mở view, kiểm tra và đóng nếu quá hạn"""
         self._close_if_expired()

@@ -8,8 +8,8 @@ class CyberSaleOrderInSession(models.Model):
     session_id = fields.Many2one('cyber.session', string='Session', ondelete='cascade', required=True)
     product_id = fields.Many2one('product.product', string='Product', required=True)
     quantity = fields.Float(string='Quantity', default=1.0)
-    price_unit = fields.Float(string='Unit Price')
-    line_total = fields.Float(string='Line Total', compute='_compute_line_total', store=True)
+    price_unit = fields.Float(string='Unit Price (VND)', digits=(16, 0))
+    line_total = fields.Float(string='Line Total (VND)', compute='_compute_line_total', store=True, digits=(16, 0))
     note = fields.Char(string='Ghi chú')
 
     @api.depends('quantity', 'price_unit')
@@ -26,21 +26,23 @@ class CyberSaleOrderInSession(models.Model):
 
     @api.model
     def create(self, vals):
-        """Khi tạo order mới, kiểm tra và tự động đóng session nếu hết tiền"""
+        """Khi tạo order mới, tính lại total_cost của session và kiểm tra balance"""
         order = super(CyberSaleOrderInSession, self).create(vals)
         if order.session_id and order.session_id.state == 'running':
-            # Tính lại total_cost và kiểm tra balance
+            # Tính lại total_cost
             order.session_id._compute_total_cost()
+            # Kiểm tra balance
             order.session_id._auto_close_if_out_of_balance()
         return order
 
     def write(self, vals):
-        """Khi cập nhật order (thay đổi số lượng, giá), kiểm tra balance"""
+        """Khi cập nhật order (thay đổi số lượng, giá), tính lại total_cost và kiểm tra balance"""
         res = super(CyberSaleOrderInSession, self).write(vals)
         for rec in self:
             if rec.session_id and rec.session_id.state == 'running':
-                # Tính lại total_cost và kiểm tra balance
+                # Tính lại total_cost
                 rec.session_id._compute_total_cost()
+                # Kiểm tra balance
                 rec.session_id._auto_close_if_out_of_balance()
         return res
 
