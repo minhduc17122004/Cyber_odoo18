@@ -11,6 +11,7 @@
         # 'views/cyber_transaction_views.xml',
         'views/cyber_session_views.xml',
         'views/menu.xml',
+        'data/cron_close_sessions.xml',
     ],
     'installable': True,
     'application': True,

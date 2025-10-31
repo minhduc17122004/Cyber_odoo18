@@ -30,8 +30,8 @@
               <field name="segment_name" readonly="1"/>
               <field name="total_play_time" readonly="1"/>
               <field name="total_spent" readonly="1"/>
-              <field name="created_at" readonly="1"/>
-              <field name="updated_at" readonly="1"/>
+              <field name="create_date" readonly="1"/>
+              <field name="write_date" readonly="1"/>
             </group>
 
             <!-- <notebook>
