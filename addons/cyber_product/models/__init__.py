@@ -4,3 +4,4 @@ from . import product_uom
 from . import suplier
 from . import cyber_stock_move
 from . import cyber_stock_picking
+from . import cyber_stock_quant

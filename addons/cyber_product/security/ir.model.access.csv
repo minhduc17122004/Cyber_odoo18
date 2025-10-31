@@ -5,3 +5,4 @@ access_product_category_user,access.product.category.user,model_product_category
 access_res_partner_user,access.res.partner.user,model_res_partner,,1,1,1,1
 access_cyber_stock_move,cyber.stock.move,model_stock_move,,1,1,1,1
 access_cyber_stock_picking,cyber.stock.picking,model_stock_picking,,1,1,1,1
+access_cyber_stock_quant,Cyber Stock Quant,model_cyber_stock_quant,,1,1,1,1

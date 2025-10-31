@@ -2,7 +2,7 @@
 <odoo>
 
     <!-- =================== VIEWS =================== -->
-
+    
     <!-- List view cho Stock Picking -->
     <record id="view_cyber_stock_picking_list" model="ir.ui.view">
         <field name="name">cyber.stock.picking.list</field>
@@ -45,7 +45,7 @@
                                                ('supplier_component_id', '=', parent.partner_id),
                                                ('supplier_service_id', '=', parent.partner_id)
                                            ]"/>
-                                    <field name="product_id" invisible="1"/> <!-- Ẩn product_id gốc để vẫn tính toán liên quan -->
+                                    <field name="product_id" invisible="1" context="{'default_type': 'product'}" options="{'no_create': False}"/> <!-- Ẩn product_id gốc để vẫn tính toán liên quan -->
                                     <field name="product_uom_qty"/>
                                     <field name="state"/>
                                     <field name="is_machine"/>
@@ -67,7 +67,7 @@
         <field name="model">stock.move</field>
         <field name="arch" type="xml">
             <list>
-                <field name="product_id"/>
+                <field name="product_id" context="{'default_type': 'product'}" options="{'no_create': False}"/>
                 <field name="product_uom_qty"/>
                 <field name="is_machine"/>
                 <field name="is_good"/>
@@ -86,7 +86,7 @@
             <form>
                 <sheet>
                     <group>
-                        <field name="product_id"/>
+                        <field name="product_id" context="{'default_type': 'product'}" options="{'no_create': False}"/>
                         <field name="product_uom_qty"/>
                         <field name="state"/>
                         <field name="picking_id"/>
@@ -124,5 +124,4 @@
         <field name="domain">[('picking_type_id.code','=','outgoing')]</field>
     </record>
     <menuitem id="menu_cyber_stock_out_action" name="Phiếu xuất kho" parent="menu_cyber_stock_out" action="action_cyber_stock_out"/>
-
 </odoo>
