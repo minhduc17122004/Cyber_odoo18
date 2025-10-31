@@ -10,6 +10,7 @@
         'base',
         'cyber_customer',
         'cyber_transaction',
+        'cyber_session',
     ],
     'data': [
         'security/ir.model.access.csv',
