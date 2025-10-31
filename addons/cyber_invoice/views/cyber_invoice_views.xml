@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- ===== FORM VIEW ===== -->
+        <record id="cyber_invoice_form_view" model="ir.ui.view">
+            <field name="name">cyber.invoice.form.view</field>
+            <field name="model">cyber.invoice</field>
+            <field name="arch" type="xml">
+                <form string="Hóa đơn thanh toán">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <label for="customer_id" string="Khách hàng"/>
+                                <field name="customer_id" options="{'no_create': True}" required="1"/>
+                            </h1>
+                        </div>
+
+                        <group name="main_info" string="Thông tin hóa đơn">
+                            <group>
+                                <field name="transaction_id" string="Giao dịch liên quan" options="{'no_create': True}"/>
+                                <field name="invoice_date"/>
+                                <field name="state" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="total_cost"/>
+                                <field name="discount_amount"/>
+                                <field name="surcharge"/>
+                                <field name="tax_amount"/>
+                                <field name="total_amount" readonly="1"/>
+                            </group>
+                        </group>
+                        <!-- ✅ BỔ SUNG MỚI: Liên kết với phiên chơi (Session) -->
+                        <group name="session_info" string="Thông tin phiên chơi">
+                            <group>
+                                <field name="session_id" string="Phiên chơi" options="{'no_create': True}" required="1"/>
+                            </group>
+                        </group>
+                        <!-- ✅ HẾT PHẦN BỔ SUNG -->
+
+
+                        <group name="time_info" string="Thời gian sử dụng">
+                            <group>
+                                <field name="start_time"/>
+                                <field name="end_time"/>
+                                <field name="duration" readonly="1"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <page string="Ghi chú">
+                                <field name="note" placeholder="Nhập ghi chú cho hóa đơn..."/>
+                            </page>
+                        </notebook>
+
+                        <footer>
+                            <button name="action_confirm" string="Xác nhận" type="object"
+                                    class="btn-primary"
+                                    invisible="state != 'draft'"/>
+                            <button name="action_pay" string="Thanh toán" type="object"
+                                    class="btn-success"
+                                    invisible="state != 'confirmed'"/>
+                            <button name="action_cancel" string="Hủy" type="object"
+                                    class="btn-secondary"
+                                    invisible="state in ('cancelled','paid')"/>
+                            <button string="Đóng" class="btn-secondary" special="cancel"/>
+                        </footer>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- ===== TREE VIEW ===== -->
+        <record id="cyber_invoice_tree_view" model="ir.ui.view">
+            <field name="name">cyber.invoice.tree.view</field>
+            <field name="model">cyber.invoice</field>
+            <field name="arch" type="xml">
+                <list string="Danh sách hóa đơn" default_order="invoice_date desc">
+                    <field name="customer_id"/>
+                    <field name="transaction_id"/>
+                    <field name="total_cost"/>
+                    <field name="tax_amount"/>
+                    <field name="total_amount"/>
+                    <field name="invoice_date"/>
+                    <field name="state"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- ===== ACTION ===== -->
+        <record id="action_cyber_invoice" model="ir.actions.act_window">
+            <field name="name">Hóa đơn</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">cyber.invoice</field>
+            <field name="view_mode">list,form</field>
+        </record>
+
+        <!-- ===== MENU GỐC ĐỘC LẬP ===== -->
+        <menuitem id="menu_cyber_invoice_root"
+                  name="Cyber Invoice"
+                  sequence="10"
+                  groups="base.group_user"/>
+
+        <!-- ===== MENU CON ===== -->
+        <menuitem id="menu_cyber_invoice"
+                  name="Hóa đơn"
+                  parent="menu_cyber_invoice_root"
+                  action="action_cyber_invoice"
+                  sequence="20"
+                  groups="base.group_user"/>
+
+    </data>
+</odoo>
