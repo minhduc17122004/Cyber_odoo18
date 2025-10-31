@@ -1,15 +1,16 @@
+# -*- coding: utf-8 -*-
 {
-    'name': 'Cyber Session',
-    'version': '1.0.0',
+    'name': "Cyber Session",
+    'version': '1.0',
+    'summary': 'Quản lý phiên chơi và đơn hàng trong phiên',
     'category': 'Cyber',
-    'summary': 'Manage prepaid sessions, accounts, and transactions for cyber shops',
-    'author': 'Minh Đức',
-    'depends': ['base', 'mail', 'product', 'cyber_account'],
+    'author': 'Minh Duc',
+    'depends': ['base', 'mail', 'product', 'cyber_account','cyber_transaction','cyber_customer'],
     'data': [
         'security/ir.model.access.csv',
         'views/cyber_session_views.xml',
         'views/cyber_sale_order_in_session_views.xml',
-        'views/menu.xml',
+        'views/menus.xml',
         'data/cron_close_sessions.xml',
     ],
     'installable': True,

@@ -6,6 +6,10 @@ services:
             - db
         ports:
             - '8069:8069'
+        environment:
+            - HOST=db
+            - USER=odoo
+            - PASSWORD=odoo
         volumes:
             - ./addons:/mnt/extra-addons
     db:
