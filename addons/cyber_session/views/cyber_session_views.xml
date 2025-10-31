@@ -6,7 +6,7 @@
         <field name="arch" type="xml">
             <form string="Cyber Session">
                 <header>
-                    <button name="action_close" string="Close Session" type="object"
+                    <button name="action_close_manual" string="Close Session" type="object"
                             invisible="state != 'running'" class="btn-primary"/>
                     <field name="state" widget="statusbar" statusbar_visible="running,closed"/>
                 </header>

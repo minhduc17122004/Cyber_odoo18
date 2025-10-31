@@ -12,13 +12,12 @@ class CyberAccount(models.Model):
     balance = fields.Float(compute="_compute_balance", string='Balance', digits=(10, 2), default=0.0)
     play_time_total = fields.Float('Play Time (hours)', default=0.0)
     play_time_remaining = fields.Float(compute = "_compute_play_time_remaining", string= 'Play Time Remaining (hours)', default=0.0)
+    play_time_remaining_seconds = fields.Float(string='Play Time Remaining (seconds)', compute="_compute_play_time_remaining")
     total_spent = fields.Float(string="Total Spent", digits=(10, 2), default=0.0)
     total_recharge = fields.Float(string="Total Recharge", digits=(10, 2), default=0.0)
     last_session_end = fields.Datetime(string="Last Session End")
     last_topup_date = fields.Datetime(string="Last Top-up Date")
     last_spend_date = fields.Datetime(string="Last Spend Date")
-    created_at = fields.Datetime(string="Created At", default=fields.Datetime.now, readonly=True)
-    updated_at = fields.Datetime(string="Updated At", default=fields.Datetime.now, readonly=True)
     state = fields.Selection([
         ('active', 'Active'),
         ('inactive', 'Inactive')
@@ -55,11 +54,12 @@ class CyberAccount(models.Model):
         return account
     
     def unlink(self):
-        for account in self:
-            customer = account.customer_id
-            res = super().unlink()
+        customers = self.mapped('customer_id')
+        res = super().unlink()
+        for customer in customers:
             customer._calculate_totals()
         return res
+
     
     @api.depends('total_recharge', 'total_spent')
     def _compute_balance(self):
@@ -75,9 +75,13 @@ class CyberAccount(models.Model):
             ], order='create_date desc', limit=1)
 
             if session and session.price_per_hour > 0:
-                account.play_time_remaining = account.balance / session.price_per_hour
+                hours = account.balance / session.price_per_hour
+                account.play_time_remaining = hours
+                account.play_time_remaining_seconds = hours * 3600
             else:
                 account.play_time_remaining = 0.0
+                account.play_time_remaining_seconds = 0.0
+
 
     
 class CyberCustomer(models.Model):

@@ -24,8 +24,6 @@
                                 <field name="total_spent"/>
                                 <field name="total_recharge"/>
                                 <field name="state"/>
-                                <field name="created_at"/>
-                                <field name="updated_at"/>
                             </group>
                             <!-- <group>
                                 <field name="discount_id"/>
