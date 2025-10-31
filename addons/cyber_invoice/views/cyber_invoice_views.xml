@@ -30,6 +30,14 @@
                                 <field name="total_amount" readonly="1"/>
                             </group>
                         </group>
+                        <!-- ✅ BỔ SUNG MỚI: Liên kết với phiên chơi (Session) -->
+                        <group name="session_info" string="Thông tin phiên chơi">
+                            <group>
+                                <field name="session_id" string="Phiên chơi" options="{'no_create': True}" required="1"/>
+                            </group>
+                        </group>
+                        <!-- ✅ HẾT PHẦN BỔ SUNG -->
+
 
                         <group name="time_info" string="Thời gian sử dụng">
                             <group>

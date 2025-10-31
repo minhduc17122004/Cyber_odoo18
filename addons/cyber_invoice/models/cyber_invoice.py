@@ -14,7 +14,11 @@ class CyberInvoice(models.Model):
         required=True,
         ondelete='cascade'
     )
-
+    session_id = fields.Many2one(
+        'cyber.session',
+        string="Phiên chơi",
+        ondelete='set null'
+    )
     transaction_id = fields.Many2one(
         'cyber.transaction',
         string='Giao dịch liên quan',
