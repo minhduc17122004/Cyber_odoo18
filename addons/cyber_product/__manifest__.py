@@ -11,7 +11,8 @@
         'views/categories_views.xml',
         'views/uom_views.xml',
         'views/supplier_views.xml',
-        'views/stock_views.xml'
+        'views/stock_moveP_views.xml',
+        'views/stock_quant_views.xml',
     ],
     'installable': True,
     'application': True,

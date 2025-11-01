@@ -2,7 +2,7 @@
 <odoo>
 
     <!-- =================== VIEWS =================== -->
-
+    
     <!-- List view cho Stock Picking -->
     <record id="view_cyber_stock_picking_list" model="ir.ui.view">
         <field name="name">cyber.stock.picking.list</field>
@@ -10,7 +10,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
-                <field name="picking_type_id"/>
+                <field name="picking_type_id" invisible="1"/>
                 <field name="scheduled_date"/>
                 <field name="state"/>
                 <field name="move_ids_without_package"/>
@@ -27,7 +27,7 @@
                 <sheet>
                     <group>
                         <field name="name"/>
-                        <field name="picking_type_id"/>
+                        <field name="picking_type_id" invisible = "1"/>
                         <field name="scheduled_date"/>
                         <field name="state"/>
                         <field name="partner_id" string="Nhà cung cấp"/>
@@ -45,7 +45,7 @@
                                                ('supplier_component_id', '=', parent.partner_id),
                                                ('supplier_service_id', '=', parent.partner_id)
                                            ]"/>
-                                    <field name="product_id" invisible="1"/> <!-- Ẩn product_id gốc để vẫn tính toán liên quan -->
+                                    <field name="product_id" invisible="1" context="{'default_type': 'product'}" options="{'no_create': False}"/> <!-- Ẩn product_id gốc để vẫn tính toán liên quan -->
                                     <field name="product_uom_qty"/>
                                     <field name="state"/>
                                     <field name="is_machine"/>
@@ -67,7 +67,7 @@
         <field name="model">stock.move</field>
         <field name="arch" type="xml">
             <list>
-                <field name="product_id"/>
+                <field name="product_id" context="{'default_type': 'product'}" options="{'no_create': False}"/>
                 <field name="product_uom_qty"/>
                 <field name="is_machine"/>
                 <field name="is_good"/>
@@ -86,7 +86,7 @@
             <form>
                 <sheet>
                     <group>
-                        <field name="product_id"/>
+                        <field name="product_id" context="{'default_type': 'product'}" options="{'no_create': False}"/>
                         <field name="product_uom_qty"/>
                         <field name="state"/>
                         <field name="picking_id"/>
@@ -105,23 +105,22 @@
 
     <menuitem id="menu_cyber_inventory_root" name="Cyber Inventory" parent="menu_cyber_product_root" sequence="10"/>
     <menuitem id="menu_cyber_stock_in" name="Phiếu nhập kho" parent="menu_cyber_inventory_root" sequence="1"/>
-    <menuitem id="menu_cyber_stock_out" name="Phiếu xuất kho" parent="menu_cyber_inventory_root" sequence="2"/>
-
-    <!-- =================== ACTIONS =================== -->
-
     <record id="action_cyber_stock_in" model="ir.actions.act_window">
         <field name="name">Phiếu nhập kho Cyber</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('picking_type_id.code','=','incoming')]</field>
+        <field name="context">{'picking_type_code': 'incoming'}</field>
     </record>
     <menuitem id="menu_cyber_stock_in_action" name="Phiếu nhập kho" parent="menu_cyber_stock_in" action="action_cyber_stock_in"/>
 
+    <menuitem id="menu_cyber_stock_out" name="Phiếu xuất kho" parent="menu_cyber_inventory_root" sequence="2"/>
     <record id="action_cyber_stock_out" model="ir.actions.act_window">
         <field name="name">Phiếu xuất kho Cyber</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('picking_type_id.code','=','outgoing')]</field>
+        <field name="context">{'picking_type_code': 'outgoing'}</field>
     </record>
     <menuitem id="menu_cyber_stock_out_action" name="Phiếu xuất kho" parent="menu_cyber_stock_out" action="action_cyber_stock_out"/>
 
