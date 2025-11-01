@@ -44,7 +44,7 @@ class CyberSession(models.Model):
 
     @api.depends('duration', 'price_per_hour', 'order_ids.line_total')
     def _compute_total_cost(self):
-        """Tính tổng chi phí = (duration * price_per_hour) + tổng orders"""
+        """Tổng chi phí = (duration * price_per_hour) + tổng orders"""
         for rec in self:
             session_cost = rec.duration * rec.price_per_hour
             orders_cost = sum(rec.order_ids.mapped('line_total'))
@@ -70,55 +70,46 @@ class CyberSession(models.Model):
             if not acc:
                 continue
 
-            # Cập nhật thời lượng & chi phí
+            # Tính lại thời lượng & chi phí cho đúng
             rec._compute_duration()
             rec._compute_total_cost()
 
-            # Cập nhật account
-            acc.total_spent += rec.total_cost
+            # ❌ Không trừ tiền nữa (đã trừ khi tạo)
             acc.play_time_total += rec.duration
             acc.last_session_end = rec.end_time
-            acc._compute_balance()
 
-            # Cập nhật customer
+            acc.sudo().write({
+                'play_time_total': acc.play_time_total,
+                'last_session_end': acc.last_session_end,
+            })
+
+            # Cập nhật customer tổng hợp
             if acc.customer_id:
                 acc.customer_id._calculate_totals()
 
-            # Tạo transaction loại 'spend' khi đóng session
-            # self.env['cyber.transaction'].create({
-            #     'account_id': acc.id,
-            #     'session_id': rec.id,
-            #     'amount': -rec.total_cost,
-            #     'type': 'spend',
-            #     'date': fields.Datetime.now(),
-            # })
-
-            # Cập nhật trạng thái và log
+            # ✅ Chuyển trạng thái và log
             rec.state = 'closed'
             rec.message_post(body=_("Session closed automatically at %s.") % rec.end_time)
 
         return True
 
-
     def _close_if_expired(self):
-        """Kiểm tra nếu hết giờ thì đóng ngay"""
+        """Tự động đóng khi hết giờ"""
         now = fields.Datetime.now()
         for rec in self:
             if rec.state == 'running' and rec.end_time_expected and now >= rec.end_time_expected:
-                # Ghi trực tiếp vào DB mà không tái gọi _close_if_expired
                 rec.with_context(skip_check=True).sudo().write({
-                    'end_time': rec.end_time_expected,
+                    'end_time': rec.end_time_expected or now,
                     'state': 'closed'
                 })
                 rec._finalize_close()
 
     def _auto_close_if_out_of_balance(self):
-        """Tự động đóng session nếu tổng chi phí vượt quá số dư"""
+        """Tự đóng nếu hết tiền"""
         for rec in self:
-            if rec.state == 'running' and rec.account_id:
-                if rec.total_cost > rec.account_id.balance:
-                    rec.end_time = fields.Datetime.now()
-                    rec._finalize_close()
+            if rec.state == 'running' and rec.account_id and rec.account_id.balance <= 0:
+                rec.end_time = fields.Datetime.now()
+                rec._finalize_close()
 
     def action_close_manual(self):
         """Đóng thủ công"""
@@ -134,12 +125,39 @@ class CyberSession(models.Model):
     # ========================
     @api.model
     def create(self, vals):
-        """Tự động tạo Session ID dựa trên timestamp khi tạo session"""
+        """Tạo session và trừ tiền ngay"""
         if vals.get('name', 'New') == 'New':
-            # Format: SES + YYYYMMDDHHMMSS
             timestamp = fields.Datetime.now().strftime('%Y%m%d%H%M%S')
             vals['name'] = f'SES{timestamp}'
-        return super(CyberSession, self).create(vals)
+
+        session = super(CyberSession, self).create(vals)
+        acc = session.account_id
+
+        # ✅ Khi tạo session, trừ tiền ngay 1 giờ (hoặc thời lượng dự kiến)
+        if acc and session.price_per_hour > 0:
+            cost = session.price_per_hour  # tạm tính 1h; có thể sửa thành duration cố định nếu cần
+            if acc.balance < cost:
+                raise UserError(_("Số dư không đủ để bắt đầu session."))
+
+            # Cập nhật account
+            acc.sudo().write({
+                'balance': acc.balance - cost,
+                'total_spent': acc.total_spent + cost,
+            })
+
+            # Tạo transaction spend (1 lần duy nhất)
+            self.env['cyber.transaction'].with_context(from_session=True).create({
+                'account_id': acc.id,
+                'session_id': session.id,
+                'amount': cost,
+                'type': 'spend',
+                'payment_method': 'cash',
+            })
+
+            # Cập nhật play_time_remaining (vì đã trừ tiền)
+            acc._compute_play_time_remaining()
+
+        return session
 
     def read(self, fields=None, load='_classic_read'):
         """Mỗi lần mở view, kiểm tra và đóng nếu quá hạn"""
@@ -149,7 +167,6 @@ class CyberSession(models.Model):
     def write(self, vals):
         """Mỗi lần ghi dữ liệu, kiểm tra lại"""
         res = super().write(vals)
-        # Nếu context có flag thì bỏ qua kiểm tra
         if not self.env.context.get('skip_check'):
             self._close_if_expired()
         return res
