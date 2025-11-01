@@ -10,6 +10,7 @@
                 <field name="complete_name"/>
                 <field name="parent_id"/>
                 <field name="category_type"/>
+                <field name="price_per_hours"/>
             </list>
         </field>
     </record>
@@ -25,6 +26,9 @@
                         <field name="name"/>
                         <field name="parent_id"/>
                         <field name="category_type"/>
+                        <field name="price_per_hours"
+                            depends="category_type"
+                            modifier="{'invisible': [('category_type', '!=', 'service')]}"/>
                     </group>
                 </sheet>
             </form>
