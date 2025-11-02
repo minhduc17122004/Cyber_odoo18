@@ -225,8 +225,8 @@ class CyberProduct(models.Model):
         # --- Gán giá dịch vụ tự động nếu có category service ---
         if vals.get('service_category_id'):
             category = self.env['product.category'].browse(vals['service_category_id'])
-            if category.category_type == 'service' and category.price_list:
-                vals['price_per_hour'] = category.price_list
+            if category.category_type == 'service' and category.price_per_hours:
+                vals['price_per_hour'] = category.price_per_hours
 
 
         # 2. Ghi timestamp tạo/sửa nội bộ (riêng cho product info)
@@ -253,24 +253,22 @@ class CyberProduct(models.Model):
         return product
 
     def write(self, vals):
+        # Vô hiệu hóa field quantity_init khi edit
+        if 'quantity_init' in vals:
+            vals.pop('quantity_init')
+        
+        # --- Cập nhật giá dịch vụ nếu thay đổi service_category_id ---
+        if vals.get('service_category_id'):
+            category = self.env['product.category'].browse(vals['service_category_id'])
+            if category.category_type == 'service' and category.price_per_hours:
+                vals['price_per_hour'] = category.price_per_hours
+        
         # Không cập nhật update_at nếu chỉ thay đổi quantity_init
         ignore_fields = {'quantity_init'}
         if not all(k in ignore_fields for k in vals.keys()):
             vals['update_at'] = fields.Datetime.now()
+        
         return super(CyberProduct, self).write(vals)
-
-    def unlink(self):
-        # Xóa product.template liên quan sau khi xóa cyber.product
-        templates_to_delete = self.mapped('product_tmpl_id')
-        res = super(CyberProduct, self).unlink()
-        if templates_to_delete:
-            templates_to_delete.unlink()
-        return res
-
-    def write(self, vals):
-        if 'quantity_init' in vals:
-            vals.pop('quantity_init')  # vô hiệu hóa field khi edit
-        return super().write(vals)
 
     # inverse suppliers: tạo partner nếu người dùng nhập trực tiếp record không có id (rare)
     def _inverse_supplier_service_id(self):
@@ -303,16 +301,21 @@ class CyberProduct(models.Model):
         return partner.id
     
     def unlink(self):
+        # Xóa các bản ghi tồn kho liên quan
         CyberQuant = self.env['cyber.stock.quant']
         for record in self:
-            # Tìm các bản ghi tồn kho có liên kết tới sản phẩm này
             quants = CyberQuant.search([
                 ('cyber_product_id', '=', record.id)
             ])
             if quants:
                 quants.unlink()
-        # Sau đó mới xóa sản phẩm
-        return super(CyberProduct, self).unlink()
+        
+        # Xóa product.template liên quan
+        templates_to_delete = self.mapped('product_tmpl_id')
+        res = super(CyberProduct, self).unlink()
+        if templates_to_delete:
+            templates_to_delete.unlink()
+        return res
     
     @api.onchange('product_tmpl_id')
     def _onchange_force_type(self):

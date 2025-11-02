@@ -44,7 +44,7 @@
                     <!-- ✅ Thêm bonus_amount để dễ xem tổng cộng -->
                     <field name="bonus_amount" string="Khuyến mãi (₫)"/>
                     <field name="payment_method" string="Phương thức thanh toán"/>
-                    <field name="create_date" string="Ngày tạo"/>
+                    <field name="create_date" string="Thời gian giao dịch"/>
                 </list>
             </field>
         </record>

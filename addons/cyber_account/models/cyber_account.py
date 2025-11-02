@@ -9,10 +9,10 @@ class CyberAccount(models.Model):
 
     username = fields.Char('Username', required=True)
     password = fields.Char('Password', required=True)
-    balance = fields.Float(compute="_compute_balance", string='Balance (VND)', digits=(16, 2), default=0.0)
+    balance = fields.Float(compute="_compute_balance", string='Balance (VND)', digits=(16, 2), default=0.0, store=True)
     play_time_total = fields.Float('Play Time (hours)', default=0.0)
-    play_time_remaining = fields.Float(compute = "_compute_play_time_remaining", string= 'Play Time Remaining (hours)', default=0.0)
-    play_time_remaining_seconds = fields.Float(string='Play Time Remaining (seconds)', compute="_compute_play_time_remaining")
+    play_time_remaining = fields.Float(compute="_compute_play_time_remaining", string='Play Time Remaining (hours)', default=0.0, store=True)
+    play_time_remaining_seconds = fields.Float(string='Play Time Remaining (seconds)', compute="_compute_play_time_remaining", store=True)
     total_spent = fields.Float(string="Total Spent (VND)", digits=(16, 2), default=0.0)
     total_recharge = fields.Float(string="Total Recharge (VND)", digits=(16, 2), default=0.0)
     last_session_end = fields.Datetime(string="Last Session End")
@@ -68,17 +68,21 @@ class CyberAccount(models.Model):
 
     @api.depends('balance')
     def _compute_play_time_remaining(self):
+        """Tính thời gian chơi còn lại dựa trên balance"""
         for account in self:
+            # Tìm session đang chạy của account này
             session = self.env['cyber.session'].search([
                 ('account_id', '=', account.id),
                 ('state', '=', 'running')
             ], order='create_date desc', limit=1)
 
             if session and session.price_per_hour > 0:
+                # Tính theo balance thực tế (không trừ cost_so_far)
                 hours = account.balance / session.price_per_hour
                 account.play_time_remaining = hours
                 account.play_time_remaining_seconds = hours * 3600
             else:
+                # Không có session đang chạy hoặc price = 0
                 account.play_time_remaining = 0.0
                 account.play_time_remaining_seconds = 0.0
 
