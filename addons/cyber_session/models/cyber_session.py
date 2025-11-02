@@ -19,8 +19,8 @@ class CyberSession(models.Model):
     end_time = fields.Datetime(string='End Time')
     end_time_expected = fields.Datetime(string='Expected End Time', compute='_compute_end_time_expected', store=True)
     duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True, digits=(12, 6))
-    price_per_hour = fields.Float(string='Price per Hour (VND)', required=True, digits=(16, 0))
-    total_cost = fields.Float(string='Total Cost (VND)', compute='_compute_total_cost', store=True, digits=(16, 0))
+    price_per_hour = fields.Float(string='Price per Hour (VND)', required=True, digits=(16, 2))
+    total_cost = fields.Float(string='Total Cost (VND)', compute='_compute_total_cost', store=True, digits=(16, 2))
     currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
     state = fields.Selection([
         ('running', 'Running'),

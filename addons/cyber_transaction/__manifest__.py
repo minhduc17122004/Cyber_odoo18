@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 {
     'name': "Cyber Transaction",
-    'summary': """Quản lý giao dịch tài khoản trong quán net""",
+    'summary': """Quản lý giao dịch tài khoản""",
     'description': """Lưu trữ và quản lý các giao dịch nạp tiền, chi tiêu của tài khoản khách hàng.""",
-    'author': "Minh Quân",
+    'author': "MINH QUAN",
     'category': 'Cyber',
-    'version': '0.1',
+    'version': '1.0',
     'depends': [
         'base',         
         'cyber_account', 

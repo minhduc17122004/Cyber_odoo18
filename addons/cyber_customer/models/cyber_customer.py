@@ -17,8 +17,8 @@ class CyberCustomer(models.Model):
     dob = fields.Date(string="Date of Birth")
     join_date = fields.Date(string="Join Date", default=fields.Date.context_today)
     total_play_time = fields.Float(string="Total Play Time (hours)", default=0.0)
-    total_spent = fields.Float(string="Total Spent (VND)", digits=(16, 0), default=0.0)
-    total_recharge = fields.Float(string="Total Recharge (VND)", digits=(16, 0), default=0.0)
+    total_spent = fields.Float(string="Total Spent (VND)", digits=(16, 2), default=0.0)
+    total_recharge = fields.Float(string="Total Recharge (VND)", digits=(16, 2), default=0.0)
 
     segment_id = fields.Many2one(
         'customer.segment',

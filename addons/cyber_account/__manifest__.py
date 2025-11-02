@@ -3,7 +3,7 @@
     'name': "Cyber Account",
     'summary': """Quản lý tài khoản khách hàng quán nét""",
     'description': """Quản lý thông tin khách hàng""",
-    'author': "Minh Quân",
+    'author': "MINH QUAN",
     'category': 'Cyber',
     'version': '0.1',
     'depends': [

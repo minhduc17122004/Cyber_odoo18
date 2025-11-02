@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 {
     'name': "Cyber Customer Segments",
-    'summary': "Module for Customer Segment",
-    'author': "Toan Nguyen",
+    'summary': "Quản lý phân khúc khách hàng",
+    'author': "HUU TOAN",
     'category': 'Cyber',
-    'version': '1.0.0',
+    'version': '1.0',
     'depends': ['base'],
     'data': [
         'views/views.xml',
