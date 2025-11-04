@@ -47,3 +47,20 @@ class CyberStockQuant(models.Model):
             raise ValidationError("Không đủ tồn kho để xuất.")
         self.quantity -= qty
         self.in_date = fields.Datetime.now()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        recs = super().create(vals_list)
+        recs.mapped('cyber_product_id')._compute_good_status()
+        return recs
+
+    def write(self, vals):
+        res = super().write(vals)
+        self.mapped('cyber_product_id')._compute_good_status()
+        return res
+
+    def unlink(self):
+        products = self.mapped('cyber_product_id')
+        res = super().unlink()
+        products._compute_good_status()
+        return res

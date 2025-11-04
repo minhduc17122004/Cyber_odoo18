@@ -18,9 +18,15 @@ class ProductCategory(models.Model):
             res['category_type'] = self._context['default_category_type']
         return res
 
-    @api.constrains('price_per_hours', 'category_type')
-    def _check_price_per_hours_service(self):
+    price_per_hours_readonly = fields.Boolean(compute="_compute_price_per_hours_readonly")
+
+    @api.depends('category_type')
+    def _compute_price_per_hours_readonly(self):
         for rec in self:
-            if rec.category_type != 'service' and rec.price_per_hours:
-                raise ValidationError("Chỉ category loại service mới được nhập giá dịch vụ.")
+            rec.price_per_hours_readonly = rec.category_type != 'service'
+    #@api.constrains('price_per_hours', 'category_type')
+    #def _check_price_per_hours_service(self):
+    #    for rec in self:
+    #        if rec.category_type != 'service' and rec.price_per_hours:
+    #            raise ValidationError("Chỉ category loại service mới được nhập giá dịch vụ.")
     
