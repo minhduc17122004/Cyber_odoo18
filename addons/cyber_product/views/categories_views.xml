@@ -26,9 +26,7 @@
                         <field name="name"/>
                         <field name="parent_id"/>
                         <field name="category_type"/>
-                        <field name="price_per_hours"
-                            depends="category_type"
-                            modifier="{'invisible': [('category_type', '!=', 'service')]}"/>
+                        <field name="price_per_hours" readonly="price_per_hours_readonly"/>
                     </group>
                 </sheet>
             </form>

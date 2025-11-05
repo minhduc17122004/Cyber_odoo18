@@ -21,7 +21,17 @@ class CyberProduct(models.Model):
     string="Số lượng ban đầu",
     default=0.0,
     help="Chỉ nhập khi tạo sản phẩm mới. Sau khi lưu, hệ thống sẽ tự tạo phiếu nhập kho tương ứng.")
-
+    
+    min_stock_good = fields.Float(
+        string="Tồn kho tối thiểu (Hàng hóa)",
+        default=0.0,
+        help="Nếu tồn kho nhỏ hơn hoặc bằng mức này => Cảnh báo sắp hết.")
+    
+    min_stock_component = fields.Float(
+        string="Tồn kho tối thiểu (Linh kiện)",
+        default=0.0,
+        help="Nếu tồn kho nhỏ hơn hoặc bằng mức này => Cảnh báo sắp hết.")
+    
     # Thông tin chung bổ sung: Thoi gian Tao & Chinh sua & TTHD
     create_at = fields.Datetime(string="Ngày tạo", default=fields.Datetime.now)
     update_at = fields.Datetime(string="Cập nhật lần cuối", default=fields.Datetime.now)
@@ -31,8 +41,7 @@ class CyberProduct(models.Model):
     service_category_id = fields.Many2one(
         "product.category",
         string="Loại máy",
-        domain=[('category_type', '=', 'service')],
-        inverse="_inverse_supplier_service_id"
+        domain=[('category_type', '=', 'service')]
     )
     machine_status = fields.Selection([
         ('active', 'Hoạt động'),
@@ -43,19 +52,11 @@ class CyberProduct(models.Model):
         ('offline', 'Ngoại tuyến'),
         ('in_use', 'Đang sử dụng')
     ], string="Trạng thái hoạt động", default='offline')
-    supplier_service_id = fields.Many2one(
-        "res.partner",
-        string="Nhà cung cấp",
-        domain=[('supplier_type', '=', 'service')],
-        context={'default_is_supplier_cyber': True, 'default_supplier_type': 'service'},
-        ondelete='set null'
-    )
     location = fields.Char(string="Vị trí đặt máy")
-    price_per_hour = fields.Float(string="Giá dịch vụ (VNĐ/giờ)")
+    price_per_hours = fields.Float(string="Giá dịch vụ (VNĐ/giờ)")
     usage_hours = fields.Integer(string="Tổng giờ đã sử dụng")
     last_maintenance = fields.Date(string="Ngày bảo trì gần nhất")
     next_maintenance = fields.Date(string="Ngày bảo trì tiếp theo")
-    serial_number = fields.Char(string="Số seri / mã định danh")
     ip_address = fields.Char(string="Địa chỉ IP")
 
     # Chỉ số tổng quan máy----------------------------
@@ -124,7 +125,6 @@ class CyberProduct(models.Model):
         context={'default_is_supplier_cyber': True, 'default_supplier_type': 'component'},
         ondelete='set null'
     )
-    compatible_machine = fields.Text(string="Tương thích với máy")
     lifetime_hours = fields.Integer(string="Tuổi thọ (giờ)")
     component_status = fields.Selection([
         ('available', 'Có sẵn'),
@@ -204,8 +204,6 @@ class CyberProduct(models.Model):
     @api.model
     def create(self, vals):
         # 0. Nếu supplier_* được truyền là tên (string) -> tạo partner trước để gán vào vals
-        if vals.get('supplier_service_id') and isinstance(vals.get('supplier_service_id'), str):
-            vals['supplier_service_id'] = self._prepare_supplier_partner(vals.get('supplier_service_id'), 'service')
         if vals.get('supplier_good_id') and isinstance(vals.get('supplier_good_id'), str):
             vals['supplier_good_id'] = self._prepare_supplier_partner(vals.get('supplier_good_id'), 'good')
         if vals.get('supplier_component_id') and isinstance(vals.get('supplier_component_id'), str):
@@ -225,8 +223,8 @@ class CyberProduct(models.Model):
         # --- Gán giá dịch vụ tự động nếu có category service ---
         if vals.get('service_category_id'):
             category = self.env['product.category'].browse(vals['service_category_id'])
-            if category.category_type == 'service' and category.price_list:
-                vals['price_per_hour'] = category.price_list
+            if category.category_type == 'service' and category.price_per_hours:
+                vals['price_per_hours'] = category.price_per_hours
 
 
         # 2. Ghi timestamp tạo/sửa nội bộ (riêng cho product info)
@@ -273,11 +271,6 @@ class CyberProduct(models.Model):
         return super().write(vals)
 
     # inverse suppliers: tạo partner nếu người dùng nhập trực tiếp record không có id (rare)
-    def _inverse_supplier_service_id(self):
-        for record in self:
-            if record.supplier_service_id and isinstance(record.supplier_service_id, str):
-                pid = self._prepare_supplier_partner(record.supplier_service_id, 'service')
-                record.supplier_service_id = pid
 
     def _inverse_supplier_good_id(self):
         for record in self:
@@ -327,8 +320,28 @@ class CyberProduct(models.Model):
     def _onchange_service_category(self):
         for rec in self:
             if rec.service_category_id and rec.service_category_id.category_type == 'service':
-                rec.price_per_hour = rec.service_category_id.price_per_hours
+                rec.price_per_hours = rec.service_category_id.price_per_hours
             else:
-                rec.price_per_hour = 0.0
+                rec.price_per_hours = 0.0
 
+    @api.depends('quant_ids.quantity', 'min_stock_good', 'min_stock_component')
+    def _compute_good_status(self):
+        """Tự động xác định trạng thái hàng hóa và linh kiện."""
+        for rec in self:
+            total_qty = sum(rec.quant_ids.mapped('quantity'))  # tổng tồn kho hiện tại
+            if rec.is_good:
+                if total_qty <= 0:
+                    rec.good_status = 'no more'
+                elif total_qty <= rec.min_stock_good:
+                    rec.good_status = 'running out'
+                else:
+                    rec.good_status = 'available'
+
+            elif rec.is_component:
+                if total_qty <= 0:
+                    rec.component_status = 'no more'
+                elif total_qty <= rec.min_stock_component:
+                    rec.component_status = 'running out'
+                else:
+                    rec.component_status = 'available'
 
