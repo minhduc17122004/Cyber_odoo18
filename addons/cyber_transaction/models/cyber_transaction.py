@@ -13,7 +13,13 @@ class CyberTransaction(models.Model):
         required=True,
         ondelete='cascade'
     )
-    username = fields.Char(related='account_id.username', string='Tên đăng nhập', readonly=True)
+
+    # Điều này giúp biết transaction nào thuộc về session nào.
+    session_id = fields.Many2one(
+        'cyber.session',
+        string='Phiên chơi liên quan',
+        ondelete='set null'
+    )
 
     type = fields.Selection([
         ('topup', 'Nạp tiền'),
@@ -67,7 +73,7 @@ class CyberTransaction(models.Model):
 
         # Nếu là giao dịch chi tiêu
         elif transaction.type == 'spend':
-            if transaction.amount > account.balance:
+            if not self.env.context.get('from_session') and transaction.amount > account.balance:
                 raise ValidationError(_("Số dư không đủ để thực hiện giao dịch chi tiêu."))
             
             account.total_spent += transaction.amount

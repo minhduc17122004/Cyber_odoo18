@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    
+    <!-- ====== Stock Quant List ====== -->
+    <record id="view_cyber_stock_quant_list" model="ir.ui.view">
+        <field name="name">cyber.stock.quant.list</field>
+        <field name="model">cyber.stock.quant</field>
+        <field name="arch" type="xml">
+            <list string="Tồn kho sản phẩm">
+                <field name="cyber_product_id" string="Sản phẩm Cyber"/>
+                <field name="product_id"/>
+                <field name="location_id"/>
+                <field name="quantity"/>
+                <field name="reserved_quantity"/>
+                <field name="in_date"/>
+                <field name="write_date" string="Ngày cập nhật"/>
+                <field name="write_uid" string="Người cập nhật"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ====== Stock Quant Form ====== -->
+    <record id="view_cyber_stock_quant_form" model="ir.ui.view">
+        <field name="name">cyber.stock.quant.form</field>
+        <field name="model">cyber.stock.quant</field>
+        <field name="arch" type="xml">
+            <form string="Chi tiết tồn kho">
+                <sheet>
+                    <group>
+                        <field name="cyber_product_id" string="Sản phẩm Cyber"
+                            domain="[
+                                '|','|',
+                                ('supplier_good_id', '=', parent.partner_id),
+                                ('supplier_component_id', '=', parent.partner_id),
+                                ('supplier_service_id', '=', parent.partner_id)
+                            ]"/>
+                        <field name="product_id" invisible="1"/>
+                        <field name="location_id"/>
+                        <field name="quantity"/>
+                        <field name="reserved_quantity"/>
+                        <field name="in_date" readonly="1"/>
+                        <field name="write_date" readonly="1" string="Ngày cập nhật"/>
+                        <field name="write_uid" readonly="1" string="Người cập nhật"/>
+                        <field name="note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <menuitem id="menu_cyber_stock_root" name="Inventory" sequence="20"/>
+    <menuitem id="menu_cyber_stock_quant" name="Tồn kho sản phẩm" parent="menu_cyber_stock_root" sequence="1"/>
+
+        <!-- ACTION TỒN KHO -->
+    <record id="action_cyber_stock_quant" model="ir.actions.act_window">
+        <field name="name">Tồn kho sản phẩm</field>
+        <field name="res_model">cyber.stock.quant</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[
+            (5 ,0, 0, {'view_mode': 'list', 'view_id': ref('view_cyber_stock_quant_list')}),
+            (5 ,0, 0, {'view_mode': 'form', 'view_id': ref('view_cyber_stock_quant_form')})
+        ]"/>
+    </record>
+    <menuitem id="menu_cyber_stock_quant_action" name="Tồn kho sản phẩm" parent="menu_cyber_stock_quant" action="action_cyber_stock_quant"/>
+</odoo>

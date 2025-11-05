@@ -10,7 +10,6 @@
                 <field name="default_code"/>
                 <field name="ip_address"/>
                 <field name="price_per_hour"/>
-                <field name="list_price"/>
                 <field name="service_category_id"/>
                 <field name="machine_status"/>
                 <field name="usage_hours"/>
@@ -29,25 +28,52 @@
                         <field name="name"/>
                         <field name="service_category_id" domain="[('category_type','=','service')]"/>
                         <field name="machine_status"/>
+                        <field name="machine_using_status"/>
                         <field name="location"/>
-                        <field name="price_per_hour"/>
-                        <field name="list_price"/>
+                        <field name="price_per_hour" readonly="1" />
+                        <field name="price_editable" invisible="1" />
+                        <field name="standard_price"/>
+                        <field name="quantity_init"/>
                         <field name="supplier_service_id"
                                 domain="[('supplier_type','=','service')]"
                                 context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'service'}"
                                 options="{'no_create': False}"/>
                         <field name="usage_hours"/>
-                        <field name="machine_spec"/>
                         <field name="serial_number"/>
                         <field name="ip_address"/>
                         <field name="last_maintenance"/>
                         <field name="next_maintenance"/>
                         <field name="is_active"/>
+                        <field name="create_at" readonly="1"/>
+                        <field name="update_at" readonly="1"/>
+                        <button name="action_view_stock_quants"
+                            string="Xem tồn kho"
+                            type="object"
+                            class="oe_highlight"/>
+                        <button name="action_view_moves" string="Xem lịch sử nhập/xuất" type="object" class="btn-secondary"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
+
+    <!-- Tổng quan máy (Dashboard) -->
+    <!--record id="view_cyber_service_overview_form" model="ir.ui.view">
+        <field name="name">cyber.service.overview.form</field>
+        <field name="model">cyber.product</field>
+        <field name="arch" type="xml">
+            <form string="Tổng quan máy">
+                <sheet>
+                    <group string="Tổng quan máy">
+                        <field name="total_ratio" readonly="1"/>
+                        <field name="maintenance_ratio" readonly="1"/>
+                        <field name="offline_ratio" readonly="1"/>
+                        <field name="in_use_ratio" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </!record-->
 
     <record id="action_cyber_service" model="ir.actions.act_window">
         <field name="name">Service (Máy chơi game)</field>
@@ -73,7 +99,6 @@
                 <field name="good_category_id"/>
                 <field name="list_price"/>
                 <field name="standard_price"/>
-                <field name="quantity"/>
                 <field name="expiry_date"/>
                 <field name="is_active"/>
             </list>
@@ -93,15 +118,22 @@
                         <field name="list_price"/>
                         <field name="standard_price"/>
                         <field name="tax_percent"/>
-                        <field name="quantity"/>
+                        <field name="quantity_init"/>
                         <field name="uom_id"/>
                         <field name="expiry_date"/>
                         <field name="supplier_good_id"
                             domain="[('supplier_type','=','good')]"
                             context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'good'}"
                             options="{'no_create': False}"/>
-                        <field name="good_status"/>
+                        <field name="good_status" readonly="1"/>
                         <field name="is_active"/>
+                        <field name="create_at" readonly="1"/>
+                        <field name="update_at" readonly="1"/>
+                        <button name="action_view_stock_quants"
+                            string="Xem tồn kho"
+                            type="object"
+                            class="oe_highlight"/>
+                        <button name="action_view_moves" string="Xem lịch sử nhập/xuất" type="object" class="btn-secondary"/>
                     </group>
                 </sheet>
             </form>
@@ -130,8 +162,7 @@
                 <field name="name"/>
                 <field name="default_code"/>
                 <field name="component_category_id"/>
-                <field name="component_status"/>
-                <field name="quantity"/>
+                <field name="component_status" readonly="1"/>
                 <field name="list_price"/>
                 <field name="is_active"/>
             </list>
@@ -149,17 +180,24 @@
                         <field name="component_category_id" domain="[('category_type','=','component')]"/>
                         <field name="list_price"/>
                         <field name="standard_price"/>
-                        <field name="quantity"/>
+                        <field name="quantity_init"/>
                         <field name="uom_id"/>
                         <field name="compatible_machine"/>
                         <field name="lifetime_hours"/>
-                        <field name="component_status"/>
+                        <field name="component_status" readonly="1"/>
                         <field name="serial_number"/>
                         <field name="supplier_component_id"
                                 domain="[('supplier_type','=','component')]"
                                 context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'component'}"
                                 options="{'no_create': False}"/>
                         <field name="is_active"/>
+                        <field name="create_at" readonly="1"/>
+                        <field name="update_at" readonly="1"/>
+                        <button name="action_view_stock_quants"
+                            string="Xem tồn kho"
+                            type="object"
+                            class="oe_highlight"/>
+                        <button name="action_view_moves" string="Xem lịch sử nhập/xuất" type="object" class="btn-secondary"/>
                     </group>
                 </sheet>
             </form>
@@ -180,7 +218,7 @@
     </record>
 
     <!-- ========== MENU ========== -->
-    <menuitem id="menu_cyber_product_root" name="Products"/>
+    <menuitem id="menu_cyber_product_root" name="Cyber Products"/>
     <menuitem id="menu_cyber_product_sub" name="Product" parent="menu_cyber_product_root"/>
     <menuitem id="menu_cyber_service" name="Service (Máy chơi game)" parent="menu_cyber_product_sub" action="action_cyber_service" sequence="1"/>
     <menuitem id="menu_cyber_goods" name="Goods (Hàng hóa)" parent="menu_cyber_product_sub" action="action_cyber_goods" sequence="2"/>
