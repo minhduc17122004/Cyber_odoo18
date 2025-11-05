@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 class CyberSession(models.Model):
     _name = 'cyber.session'
@@ -21,6 +21,11 @@ class CyberSession(models.Model):
     ], string='State', default='running', tracking=True)
 
     order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
+    transaction_id = fields.Many2one(
+    'cyber.transaction',
+    string='Giao dịch liên quan',
+    ondelete='set null'
+)
 
     # ==========================
     # COMPUTE METHODS
@@ -40,7 +45,7 @@ class CyberSession(models.Model):
             order_total = sum(rec.order_ids.mapped('line_total'))
             service_cost = rec.duration * rec.price_per_hour if rec.state == 'closed' else 0.0
             rec.total_cost = order_total + service_cost
-            rec._auto_close_if_out_of_balance()  # ⬅ Gọi auto check tại đây
+            rec._auto_close_if_out_of_balance()  # ⬅ Auto-check balance
 
     # ==========================
     # AUTO CLOSE WHEN OUT OF BALANCE
@@ -54,12 +59,14 @@ class CyberSession(models.Model):
             if not account:
                 continue
 
-            # Kiểm tra nếu tổng chi phí = số dư hiện tại
             if round(rec.total_cost, 2) >= round(account.balance, 2) and account.balance > 0:
                 rec._close_session_auto(reason="Balance reached 0")
 
+    # ==========================
+    # CLOSE SESSION + AUTO INVOICE
+    # ==========================
     def _close_session_auto(self, reason=""):
-        """Đóng phiên khi hết tiền hoặc theo trigger tự động"""
+        """Đóng phiên và tự tạo hóa đơn"""
         for rec in self:
             rec.end_time = fields.Datetime.now()
             rec._compute_duration()
@@ -70,7 +77,7 @@ class CyberSession(models.Model):
             customer = account.customer_id
 
             # Ghi transaction spend
-            self.env['cyber.transaction'].create({
+            transaction = self.env['cyber.transaction'].create({
                 'account_id': account.id,
                 'type': 'spend',
                 'amount': rec.total_cost,
@@ -89,8 +96,19 @@ class CyberSession(models.Model):
                 if hasattr(customer, '_compute_segment'):
                     customer._compute_segment()
 
-            # Có thể ghi log nếu cần
-            rec.message_post(body=f"Session closed automatically ({reason}).")
+            # ✅ TỰ ĐỘNG TẠO HÓA ĐƠN
+            invoice_vals = {
+                'customer_id': customer.id if customer else False,
+                'session_id': rec.id,
+                'transaction_id': transaction.id,
+                'total_cost': rec.total_cost,
+                'invoice_date': fields.Datetime.now(),
+                'start_time': rec.start_time,
+                'end_time': rec.end_time,
+            }
+            self.env['cyber.invoice'].create(invoice_vals)
+
+            rec.message_post(body=f"Session closed automatically ({reason}). Invoice created.")
 
     # ==========================
     # MANUAL CLOSE BUTTON
