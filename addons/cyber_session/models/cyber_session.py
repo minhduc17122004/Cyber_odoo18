@@ -125,7 +125,7 @@ class CyberSession(models.Model):
     # ========================
     @api.model
     def create(self, vals):
-        """Tạo session và trừ tiền ngay"""
+        """Tạo session nhưng KHÔNG trừ tiền ngay"""
         if vals.get('name', 'New') == 'New':
             timestamp = fields.Datetime.now().strftime('%Y%m%d%H%M%S')
             vals['name'] = f'SES{timestamp}'
@@ -133,31 +133,11 @@ class CyberSession(models.Model):
         session = super(CyberSession, self).create(vals)
         acc = session.account_id
 
-        # ✅ Khi tạo session, trừ tiền ngay 1 giờ (hoặc thời lượng dự kiến)
-        if acc and session.price_per_hour > 0:
-            cost = session.price_per_hour  # tạm tính 1h; có thể sửa thành duration cố định nếu cần
-            if acc.balance < cost:
-                raise UserError(_("Số dư không đủ để bắt đầu session."))
-
-            # Cập nhật account
-            acc.sudo().write({
-                'balance': acc.balance - cost,
-                'total_spent': acc.total_spent + cost,
-            })
-
-            # Tạo transaction spend (1 lần duy nhất)
-            self.env['cyber.transaction'].with_context(from_session=True).create({
-                'account_id': acc.id,
-                'session_id': session.id,
-                'amount': cost,
-                'type': 'spend',
-                'payment_method': 'cash',
-            })
-
-            # Cập nhật play_time_remaining (vì đã trừ tiền)
-            acc._compute_play_time_remaining()
-
+        # ❌ Không trừ tiền khi tạo session
+        # ✅ Chỉ log thông tin hoặc tạo transaction 0 VND (nếu muốn theo dõi)
+        session.message_post(body=_("Session started. No charges applied yet."))
         return session
+
 
     def read(self, fields=None, load='_classic_read'):
         """Mỗi lần mở view, kiểm tra và đóng nếu quá hạn"""
