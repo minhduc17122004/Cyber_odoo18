@@ -25,10 +25,10 @@
         <form string="Cyber Customer">
           <sheet>
             <group>
-              <field name="name"/>
+              <field name="name" string="Tên khách hàng"/>
               <field name="phone"/>
-              <field name="dob"/>
-              <field name="join_date"/>
+              <field name="dob" string="Ngày sinh"/>
+              <field name="join_date" string = "Ngày tham gia"/>
               <field name="segment_name" readonly="1"/>
               <field name="total_play_time" readonly="1"/>
               <field name="total_spent" readonly="1"/>
