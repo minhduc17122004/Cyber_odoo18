@@ -49,7 +49,7 @@
 
         <!-- ===== Action ===== -->
         <record id="action_cyber_transaction" model="ir.actions.act_window">
-            <field name="name">Giao dịch</field>
+            <field name="name">Quản lý giao dịch</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">cyber.transaction</field>
             <field name="view_mode">list,form</field>
@@ -63,7 +63,7 @@
 
         <!-- ===== Menu Con ===== -->
         <menuitem id="menu_cyber_transaction"
-            name="Giao dịch"
+            name="Quản lý giao dịch"
             parent="menu_cyber_transaction_root"
             action="action_cyber_transaction"
             sequence="20"

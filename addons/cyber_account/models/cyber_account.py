@@ -19,8 +19,8 @@ class CyberAccount(models.Model):
     last_topup_date = fields.Datetime(string="Last Top-up Date")
     last_spend_date = fields.Datetime(string="Last Spend Date")
     state = fields.Selection([
-        ('active', 'Active'),
-        ('inactive', 'Inactive')
+        ('active', 'Hoạt động'),
+        ('inactive', 'Không hoạt động'),
     ], string='State', default='active')
 
     customer_id = fields.Many2one(

@@ -57,7 +57,7 @@
       <field name="arch" type="xml">
         <xpath expr="//sheet" position="inside">
           <notebook>
-            <page string="Accounts">
+            <page string="Danh sách tài khoản">
               <field name="account_ids" nolabel="1" readonly="1"/>
             </page>
           </notebook>

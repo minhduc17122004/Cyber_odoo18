@@ -1,7 +1,7 @@
 <odoo>
     <!-- Root Menu -->
     <menuitem id="menu_cyber_session_root"
-              name="Phiên chơi"
+              name="Cyber Session"
               sequence="10"/>
 
     <!-- Session Menu -->
