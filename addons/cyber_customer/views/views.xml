@@ -9,10 +9,10 @@
           <field name="name"/>
           <field name="segment_name"/>
           <field name="phone"/>
-          <field name="join_date"/>
-          <field name="total_recharge"/>
-          <field name="total_spent"/>
-          <field name="total_play_time"/>
+          <field name="join_date" string="Ngày tham gia"/>
+          <field name="total_recharge" string="Tổng nạp tiền (VND)"/>
+          <field name="total_spent" string="Tổng chi tiêu (VND)"/>
+          <field name="total_play_time" string="Tổng thời gian đã chơi (giờ)"/>
         </list>
       </field>
     </record>
@@ -25,29 +25,17 @@
         <form string="Cyber Customer">
           <sheet>
             <group>
-              <field name="name"/>
+              <field name="name" string="Tên khách hàng"/>
               <field name="phone"/>
-              <field name="dob"/>
-              <field name="join_date"/>
-              <field name="segment_name" readonly="1"/>
-              <field name="total_play_time" readonly="1"/>
-              <field name="total_spent" readonly="1"/>
-              <field name="total_recharge" readonly="1"/>
-              <field name="create_date" readonly="1"/>
-              <field name="write_date" readonly="1"/>
+              <field name="dob" string="Ngày sinh"/>
+              <field name="join_date" string = "Ngày tham gia"/>
+              <field name="segment_name" readonly="1" />
+              <field name="total_play_time" readonly="1" string="Tổng thời gian đã chơi (giờ)"/>
+              <field name="total_spent" readonly="1" string="Tổng chi tiêu (VND)"/>
+              <field name="total_recharge" readonly="1" string="Tổng nạp tiền (VND)"/>
+              <field name="create_date" readonly="1" string="Ngày tạo"/>
+              <field name="write_date" readonly="1" string="Ngày cập nhập"/>
             </group>
-
-            <!-- <notebook>
-              <page string="Accounts">
-                <field name="account_ids">
-                  <list string="Accounts">
-                    <field name="username"/>
-                    <field name="balance"/>
-                    <field name="state"/>
-                  </list>
-                </field>
-              </page>
-            </notebook> -->
           </sheet>
         </form>
       </field>
@@ -55,16 +43,16 @@
 
     <!-- Action -->
     <record id="action_cyber_customer" model="ir.actions.act_window">
-      <field name="name">Khách hàng</field>
+      <field name="name">Quản lý khách hàng</field>
       <field name="res_model">cyber.customer</field>
       <field name="view_mode">list,form</field>
     </record>
 
     <!-- Menu -->
-    <menuitem id="menu_cyber_root" name="Cyber Customer"/>
+    <menuitem id="menu_cyber_customer_root" name="Cyber Customer"/>
     <menuitem id="menu_cyber_customer"
-              name="Khách hàng"
-              parent="menu_cyber_root"
+              name="Quản lý khách hàng"
+              parent="menu_cyber_customer_root"
               action="action_cyber_customer"/>
   </data>
 </odoo>

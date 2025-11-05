@@ -80,7 +80,7 @@
 
         <!-- ===== Action ===== -->
         <record id="action_cyber_account" model="ir.actions.act_window">
-            <field name="name">Cyber Account</field>
+            <field name="name">Quản lý tài khoản</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">cyber.account</field>
             <field name="view_mode">list,form</field>
@@ -93,7 +93,7 @@
             groups="base.group_user"/>
 
         <menuitem id="menu_cyber_account"
-            name="Accounts"
+            name="Quản lý tài khoản"
             parent="menu_cyber_account_root"
             action="action_cyber_account"
             sequence="20"

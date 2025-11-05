@@ -1,19 +1,19 @@
 <odoo>
     <!-- Root Menu -->
     <menuitem id="menu_cyber_session_root"
-              name="Cyber Sessions"
+              name="Cyber Session"
               sequence="10"/>
 
     <!-- Session Menu -->
     <menuitem id="menu_cyber_session"
-              name="Sessions"
+              name="Quản lý phiên chơi"
               parent="menu_cyber_session_root"
               action="action_cyber_session"
               sequence="10"/>
 
     <!-- Orders Menu -->
     <menuitem id="menu_cyber_sale_order_in_session"
-              name="Orders in Session"
+              name="Đơn hàng trong phiên"
               parent="menu_cyber_session_root"
               action="action_cyber_sale_order_in_session"
               sequence="20"/>

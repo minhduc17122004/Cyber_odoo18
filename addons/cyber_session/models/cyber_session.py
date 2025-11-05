@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import timedelta
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
@@ -12,26 +13,61 @@ class CyberSession(models.Model):
     # ========================
     # FIELDS
     # ========================
-    name = fields.Char(string='Session ID', required=True, readonly=True, copy=False, default='New')
-    account_id = fields.Many2one('cyber.account', string='Account', required=True, ondelete='cascade')
-    product_machine_id = fields.Many2one('product.product', string='Machine', domain=[('is_machine', '=', True)])
-    start_time = fields.Datetime(string='Start Time', default=lambda self: fields.Datetime.now())
-    end_time = fields.Datetime(string='End Time')
-    end_time_expected = fields.Datetime(string='Expected End Time', compute='_compute_end_time_expected', store=True)
-    duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True, digits=(12, 6))
-    price_per_hour = fields.Float(string='Price per Hour (VND)', required=True, digits=(16, 2))
-    total_cost = fields.Float(string='Total Cost (VND)', compute='_compute_total_cost', store=True, digits=(16, 2))
+    name = fields.Char(string='Mã phiên', required=True, readonly=True, copy=False, default='New')
+    account_id = fields.Many2one('cyber.account', string='Tài khoản', required=True, ondelete='cascade')
+    cyber_product_machine_id = fields.Many2one(
+        'cyber.product',
+        string='Máy',
+        domain=[('is_machine', '=', True)],
+        required=True,
+        ondelete='restrict'
+    )
+    start_time = fields.Datetime(string='Thời gian bắt đầu')
+    end_time = fields.Datetime(string='Thời gian kết thúc')
+    end_time_expected = fields.Datetime(string='Thời gian kết thúc dự kiến', compute='_compute_end_time_expected', store=True)
+    duration = fields.Float(string='Thời lượng (giờ)', compute='_compute_duration', store=True, digits=(12, 6))
+    
+    # Virtual field - Real-time countdown (chỉ hiển thị, không dùng cho logic nghiệp vụ)
+    play_time_remaining_virtual = fields.Float(
+        string='Thời gian còn lại (giờ) - Real-time',
+        compute='_compute_play_time_remaining_virtual',
+        store=False,  # Không lưu DB
+        digits=(12, 6)
+    )
+    play_time_remaining_virtual_seconds = fields.Float(
+        string='Thời gian còn lại (giây) - Real-time',
+        compute='_compute_play_time_remaining_virtual',
+        store=False
+    )
+    
+    price_per_hour = fields.Float(
+        string='Giá theo giờ (VND)',
+        compute='_compute_price_per_hour',
+        store=True,
+        digits=(16, 2),
+        readonly=True
+    )
+    total_cost = fields.Float(string='Tổng chi phí (VND)', compute='_compute_total_cost', store=True, digits=(16, 2))
     currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
     state = fields.Selection([
         ('running', 'Running'),
         ('closed', 'Closed')
-    ], string='Status', default='running', tracking=True)
+    ], string='Trạng thái', default='running', tracking=True)
 
-    order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
+    order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Đơn hàng trong phiên')
 
     # ========================
-    # COMPUTE METHODS
+    # COMPUTE
     # ========================
+    @api.depends('cyber_product_machine_id', 'cyber_product_machine_id.price_per_hour')
+    def _compute_price_per_hour(self):
+        """Tự động lấy giá giờ từ máy được chọn"""
+        for rec in self:
+            if rec.cyber_product_machine_id and rec.cyber_product_machine_id.price_per_hour > 0:
+                rec.price_per_hour = rec.cyber_product_machine_id.price_per_hour
+            else:
+                rec.price_per_hour = 0.0
+
     @api.depends('start_time', 'end_time')
     def _compute_duration(self):
         """Tính thời lượng phiên chơi"""
@@ -44,15 +80,15 @@ class CyberSession(models.Model):
 
     @api.depends('duration', 'price_per_hour', 'order_ids.line_total')
     def _compute_total_cost(self):
-        """Tổng chi phí = (duration * price_per_hour) + tổng orders"""
+        """Tổng chi phí = (giờ chơi * giá/giờ) + tổng đơn hàng"""
         for rec in self:
             session_cost = rec.duration * rec.price_per_hour
             orders_cost = sum(rec.order_ids.mapped('line_total'))
-            rec.total_cost = round(session_cost + orders_cost)
+            rec.total_cost = round(session_cost + orders_cost, 2)
 
     @api.depends('account_id.play_time_remaining_seconds', 'start_time')
     def _compute_end_time_expected(self):
-        """Tính thời gian kết thúc dự kiến dựa trên play_time_remaining_seconds"""
+        """Tính thời gian kết thúc dự kiến dựa vào số giờ còn lại"""
         for rec in self:
             acc = rec.account_id
             if acc and rec.start_time and acc.play_time_remaining_seconds > 0:
@@ -60,139 +96,168 @@ class CyberSession(models.Model):
             else:
                 rec.end_time_expected = False
 
+    def _compute_play_time_remaining_virtual(self):
+        """
+        Tính thời gian chơi còn lại REAL-TIME cho phiên hiện tại.
+        Field này CHỈ để hiển thị, KHÔNG dùng cho logic nghiệp vụ.
+        Logic nghiệp vụ (transaction, _finalize_close) vẫn dùng account.play_time_remaining_seconds
+        """
+        for rec in self:
+            acc = rec.account_id
+            
+            # Chỉ tính cho session đang running
+            if rec.state != 'running' or not rec.start_time or not acc:
+                rec.play_time_remaining_virtual = 0.0
+                rec.play_time_remaining_virtual_seconds = 0.0
+                continue
+            
+            if rec.price_per_hour > 0:
+                # ===== REAL-TIME CALCULATION =====
+                # Tính thời gian đã chơi
+                now = fields.Datetime.now()
+                time_played_seconds = (now - rec.start_time).total_seconds()
+                time_played_hours = time_played_seconds / 3600.0
+                
+                # Tính chi phí đã phát sinh (chưa được trừ vào balance thật)
+                cost_so_far = time_played_hours * rec.price_per_hour
+                
+                # Tính "virtual balance" = balance hiện tại - chi phí đã chơi
+                virtual_balance = acc.balance - cost_so_far
+                
+                if virtual_balance > 0:
+                    # Tính thời gian còn lại CÓ THỂ chơi với virtual balance
+                    hours_remaining = virtual_balance / rec.price_per_hour
+                    rec.play_time_remaining_virtual = hours_remaining
+                    rec.play_time_remaining_virtual_seconds = hours_remaining * 3600
+                else:
+                    # Hết tiền (virtual balance <= 0)
+                    rec.play_time_remaining_virtual = 0.0
+                    rec.play_time_remaining_virtual_seconds = 0.0
+            else:
+                rec.play_time_remaining_virtual = 0.0
+                rec.play_time_remaining_virtual_seconds = 0.0
+
     # ========================
     # MAIN LOGIC
     # ========================
-    def _finalize_close(self):
-        """Xử lý khi session kết thúc"""
+    def action_start(self):
+        """Bắt đầu session"""
         for rec in self:
             acc = rec.account_id
             if not acc:
+                raise UserError(_("Không tìm thấy tài khoản."))
+            if acc.balance <= 0:
+                raise UserError(_("Số dư không đủ để bắt đầu session."))
+            if not rec.cyber_product_machine_id:
+                raise UserError(_("Vui lòng chọn máy để bắt đầu session."))
+            if rec.price_per_hour <= 0:
+                raise UserError(_("Giá giờ của máy không hợp lệ. Vui lòng kiểm tra cấu hình máy."))
+            rec.start_time = fields.Datetime.now()
+            rec.state = 'running'
+            rec.message_post(body=_("🔵 Phiên chơi bắt đầu trên máy %s lúc %s.") % (rec.cyber_product_machine_id.name, rec.start_time))
+
+    def _finalize_close(self, auto=False):
+        for rec in self:
+            acc = rec.account_id
+            if not acc or rec.state == 'closed':
                 continue
 
-            # Tính lại thời lượng & chi phí cho đúng
-            rec._compute_duration()
-            rec._compute_total_cost()
+            # 1. Xác định thời điểm kết thúc
+            end_time_now = rec.end_time_expected if auto and rec.end_time_expected else fields.Datetime.now()
+            rec.with_context(skip_check=True).write({'end_time': end_time_now})
 
-            # ❌ Không trừ tiền nữa (đã trừ khi tạo)
-            acc.play_time_total += rec.duration
-            acc.last_session_end = rec.end_time
+            if rec.total_cost <= 0:
+                raise UserError(_("Chi phí phiên chơi không hợp lệ."))
 
+            # 2. Tính số tiền thực tế
+            actual_amount = min(rec.total_cost, acc.balance)
+
+            # 3. Ghi transaction nếu có tiền
+            if actual_amount > 0:
+                self.env['cyber.transaction'].with_context(from_session=True).create({
+                    'account_id': acc.id,
+                    'session_id': rec.id,
+                    'amount': actual_amount,
+                    'type': 'spend',
+                    'payment_method': 'balance',
+                })
+            else:
+                rec.message_post(body=_("⚠️ Phiên chơi hết tiền trước khi kết thúc, không thể trừ thêm."))
+
+            # 4. Cập nhật account
             acc.sudo().write({
-                'play_time_total': acc.play_time_total,
-                'last_session_end': acc.last_session_end,
+                'play_time_total': acc.play_time_total + rec.duration,
+                'last_session_end': end_time_now,
             })
 
-            # Cập nhật customer tổng hợp
             if acc.customer_id:
                 acc.customer_id._calculate_totals()
 
-            # ✅ Chuyển trạng thái và log
-            rec.state = 'closed'
-            rec.message_post(body=_("Session closed automatically at %s.") % rec.end_time)
+            # 5. Đóng phiên
+            rec.with_context(skip_check=True).write({'state': 'closed'})
+            msg_type = "🟠" if auto else "🟢"
+            rec.message_post(body=_("%s Phiên chơi đóng lúc %s.") % (msg_type, end_time_now))
 
-        return True
-
-    def _close_if_expired(self):
-        """Tự động đóng khi hết giờ"""
-        now = fields.Datetime.now()
-        for rec in self:
-            if rec.state == 'running' and rec.end_time_expected and now >= rec.end_time_expected:
-                rec.with_context(skip_check=True).sudo().write({
-                    'end_time': rec.end_time_expected or now,
-                    'state': 'closed'
-                })
-                rec._finalize_close()
-
-    def _auto_close_if_out_of_balance(self):
-        """Tự đóng nếu hết tiền"""
-        for rec in self:
-            if rec.state == 'running' and rec.account_id and rec.account_id.balance <= 0:
-                rec.end_time = fields.Datetime.now()
-                rec._finalize_close()
 
     def action_close_manual(self):
-        """Đóng thủ công"""
+        """Đóng thủ công (do nhân viên thao tác)"""
         for rec in self:
             if rec.state == 'closed':
                 continue
-            rec.end_time = fields.Datetime.now()
-            rec._finalize_close()
+            rec._finalize_close(auto=False)
         return True
 
+    def _action_close_auto(self):
+        """Đóng session auto khi hết giờ dự kiến"""
+        now = fields.Datetime.now()
+        for rec in self.sudo():
+            if rec.state == 'running' and rec.end_time_expected and now >= rec.end_time_expected:
+                rec._finalize_close(auto=True)
+
     # ========================
-    # OVERRIDE METHODS
+    # OVERRIDE
     # ========================
     @api.model
     def create(self, vals):
-        """Tạo session và trừ tiền ngay"""
+        # Tạo mã phiên tự động
         if vals.get('name', 'New') == 'New':
             timestamp = fields.Datetime.now().strftime('%Y%m%d%H%M%S')
             vals['name'] = f'SES{timestamp}'
-
+        
+        # Set thời gian bắt đầu khi tạo record
+        if not vals.get('start_time'):
+            vals['start_time'] = fields.Datetime.now()
+        
         session = super(CyberSession, self).create(vals)
+
         acc = session.account_id
-
-        # ✅ Khi tạo session, trừ tiền ngay 1 giờ (hoặc thời lượng dự kiến)
-        if acc and session.price_per_hour > 0:
-            cost = session.price_per_hour  # tạm tính 1h; có thể sửa thành duration cố định nếu cần
-            if acc.balance < cost:
-                raise UserError(_("Số dư không đủ để bắt đầu session."))
-
-            # Cập nhật account
-            acc.sudo().write({
-                'balance': acc.balance - cost,
-                'total_spent': acc.total_spent + cost,
-            })
-
-            # Tạo transaction spend (1 lần duy nhất)
-            self.env['cyber.transaction'].with_context(from_session=True).create({
-                'account_id': acc.id,
-                'session_id': session.id,
-                'amount': cost,
-                'type': 'spend',
-                'payment_method': 'cash',
-            })
-
-            # Cập nhật play_time_remaining (vì đã trừ tiền)
-            acc._compute_play_time_remaining()
+        if acc.balance <= 0:
+            raise UserError(_("Số dư không đủ để bắt đầu session."))
 
         return session
 
     def read(self, fields=None, load='_classic_read'):
-        """Mỗi lần mở view, kiểm tra và đóng nếu quá hạn"""
-        self._close_if_expired()
+        """Mỗi lần mở view, kiểm tra session hết giờ"""
+        self._action_close_auto()
         return super().read(fields, load)
 
     def write(self, vals):
-        """Mỗi lần ghi dữ liệu, kiểm tra lại"""
+        """Mỗi lần ghi dữ liệu, kiểm tra session hết giờ"""
         res = super().write(vals)
-        if not self.env.context.get('skip_check'):
-            self._close_if_expired()
+        if not self.env.context.get('skip_auto_close'):
+            self._action_close_auto()
         return res
 
     # ========================
-    # CRON DỰ PHÒNG
+    # CRON
     # ========================
     @api.model
     def cron_close_expired_sessions(self):
-        """Cron mỗi phút để đóng các phiên quá hạn"""
+        """Cron mỗi phút để tự động đóng session hết hạn"""
         now = fields.Datetime.now()
         sessions = self.search([
             ('state', '=', 'running'),
             ('end_time_expected', '<=', now)
         ])
-        if sessions:
-            sessions._close_if_expired()
-            _logger = self.env['ir.logging']
-            _logger.create({
-                'name': 'Cyber Session Auto-Close',
-                'type': 'server',
-                'dbname': self.env.cr.dbname,
-                'level': 'INFO',
-                'message': f"Closed {len(sessions)} expired sessions at {now}",
-                'path': 'cyber.session',
-                'line': '0',
-                'func': 'cron_close_expired_sessions',
-            })
-        return True
+        if sessions.sudo():
+            sessions._action_close_auto()

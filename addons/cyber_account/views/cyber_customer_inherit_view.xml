@@ -10,23 +10,22 @@
           <sheet>
             <group>
               <group>
-                <field name="username"/>
-                <field name="password" password="True"/>
-                <field name="customer_id" options="{'no_create': True}"/>
-                <field name="state"/>
+                <field name="username" string="Tên tài khoản"/>
+                <field name="password" password="True" string="Mật khẩu"/>
+                <field name="customer_id" options="{'no_create': True}" string="Tên khách hàng"/>
+                <field name="state" string="Trạng thái"/>
               </group>
               <group>
-                <field name="balance" readonly="1"/>
-                <field name="play_time_total"/>
-                <field name="play_time_remaining" readonly="1"/>
-                <!-- <field name="play_time_remaining_seconds" readonly="1"/> -->
-                <field name="total_spent" readonly="1"/>
-                <field name="total_recharge" readonly="1"/>
-                <field name="last_session_end" readonly="1"/>
-                <field name="last_topup_date" readonly="1"/>
-                <field name="last_spend_date" readonly="1"/>
-                <field name="create_date" readonly="1"/>
-                <field name="write_date" readonly="1"/>
+                <field name="balance" readonly="1" string="Số dư (VND)"/>
+                <field name="play_time_total" string="Tổng thời gian đã chơi (giờ)"/>
+                <field name="play_time_remaining" readonly="1" string="Thời gian còn lại (giờ)"/>
+                <field name="total_spent" readonly="1" string="Tổng chi tiêu (VND)"/>
+                <field name="total_recharge" readonly="1" string="Tổng nạp tiền (VND)"/>
+                <field name="last_session_end" readonly="1" string="Ngày chơi gần nhất"/>
+                <field name="last_topup_date" readonly="1" string="Ngày nạp tiền gần nhất"/>
+                <field name="last_spend_date" readonly="1" string="Ngày chi tiêu gần nhất"/>
+                <field name="create_date" readonly="1" string="Ngày tạo"/>
+                <field name="write_date" readonly="1" string="Ngày cập nhập"/>
               </group>
             </group>
           </sheet>
@@ -39,14 +38,13 @@
       <field name="name">cyber.account.list.in.customer</field>
       <field name="model">cyber.account</field>
       <field name="arch" type="xml">
-        <list>  <!-- Bỏ editable="bottom" -->
-          <field name="username"/>
-          <field name="balance"/>
-          <field name="play_time_total"/>
-          <field name="play_time_remaining"/>
-          <!-- <field name="play_time_remaining_seconds"/> -->
-          <field name="total_spent"/>
-          <field name="state"/>
+        <list>
+          <field name="username" string="Tên tài khoản"/>
+          <field name="balance" string="Số dư (VND)"/>
+          <field name="play_time_total" string="Tổng thời gian đã chơi (giờ)"/>
+          <field name="total_spent" string="Tổng chi tiêu (VND)"/>
+          <field name="total_recharge" string="Tổng nạp tiền (VND)"/>
+          <field name="state" string="Trạng thái"/>
         </list>
       </field>
     </record>
@@ -59,7 +57,7 @@
       <field name="arch" type="xml">
         <xpath expr="//sheet" position="inside">
           <notebook>
-            <page string="Accounts">
+            <page string="Danh sách tài khoản">
               <field name="account_ids" nolabel="1" readonly="1"/>
             </page>
           </notebook>
