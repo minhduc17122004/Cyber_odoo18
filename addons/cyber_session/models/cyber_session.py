@@ -1,6 +1,6 @@
 from datetime import timedelta
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class CyberSession(models.Model):
@@ -28,6 +28,11 @@ class CyberSession(models.Model):
     ], string='Status', default='running', tracking=True)
 
     order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
+    transaction_id = fields.Many2one(
+    'cyber.transaction',
+    string='Giao dịch liên quan',
+    ondelete='set null'
+)
 
     # ========================
     # COMPUTE METHODS
@@ -46,6 +51,33 @@ class CyberSession(models.Model):
     def _compute_total_cost(self):
         """Tổng chi phí = (duration * price_per_hour) + tổng orders"""
         for rec in self:
+
+            order_total = sum(rec.order_ids.mapped('line_total'))
+            service_cost = rec.duration * rec.price_per_hour if rec.state == 'closed' else 0.0
+            rec.total_cost = order_total + service_cost
+            rec._auto_close_if_out_of_balance()  # ⬅ Auto-check balance
+
+    # ==========================
+    # AUTO CLOSE WHEN OUT OF BALANCE
+    # ==========================
+    def _auto_close_if_out_of_balance(self):
+        """Đóng phiên tự động khi chi phí đạt đến số dư tài khoản."""
+        for rec in self:
+            if rec.state != 'running':
+                continue
+            account = rec.account_id
+            if not account:
+                continue
+
+            if round(rec.total_cost, 2) >= round(account.balance, 2) and account.balance > 0:
+                rec._close_session_auto(reason="Balance reached 0")
+
+    # ==========================
+    # CLOSE SESSION + AUTO INVOICE
+    # ==========================
+    def _close_session_auto(self, reason=""):
+        """Đóng phiên và tự tạo hóa đơn"""
+
             session_cost = rec.duration * rec.price_per_hour
             orders_cost = sum(rec.order_ids.mapped('line_total'))
             rec.total_cost = round(session_cost + orders_cost)
@@ -65,6 +97,7 @@ class CyberSession(models.Model):
     # ========================
     def _finalize_close(self):
         """Xử lý khi session kết thúc"""
+
         for rec in self:
             acc = rec.account_id
             if not acc:
@@ -77,6 +110,51 @@ class CyberSession(models.Model):
             # ❌ Không trừ tiền nữa (đã trừ khi tạo)
             acc.play_time_total += rec.duration
             acc.last_session_end = rec.end_time
+
+
+            # Ghi transaction spend
+            transaction = self.env['cyber.transaction'].create({
+                'account_id': account.id,
+                'type': 'spend',
+                'amount': rec.total_cost,
+                'payment_method': 'cash',
+            })
+
+            # Cập nhật account
+            account.total_spent += rec.total_cost
+            account.play_time_total += rec.duration
+            account.last_session_end = rec.end_time
+            account._compute_balance()
+
+            # Cập nhật customer
+            if customer:
+                customer._calculate_totals()
+                if hasattr(customer, '_compute_segment'):
+                    customer._compute_segment()
+
+            # ✅ TỰ ĐỘNG TẠO HÓA ĐƠN
+            invoice_vals = {
+                'customer_id': customer.id if customer else False,
+                'session_id': rec.id,
+                'transaction_id': transaction.id,
+                'total_cost': rec.total_cost,
+                'invoice_date': fields.Datetime.now(),
+                'start_time': rec.start_time,
+                'end_time': rec.end_time,
+            }
+            self.env['cyber.invoice'].create(invoice_vals)
+
+            rec.message_post(body=f"Session closed automatically ({reason}). Invoice created.")
+
+    # ==========================
+    # MANUAL CLOSE BUTTON
+    # ==========================
+    def action_close(self):
+        """Đóng phiên thủ công"""
+        for rec in self:
+            if rec.state == 'closed':
+                continue
+            rec._close_session_auto(reason="Manual close")
 
             acc.sudo().write({
                 'play_time_total': acc.play_time_total,
@@ -176,3 +254,4 @@ class CyberSession(models.Model):
                 'func': 'cron_close_expired_sessions',
             })
         return True
+

@@ -16,29 +16,29 @@
                             </h1>
                         </div>
 
+                        <!-- ==== Thông tin hóa đơn ==== -->
                         <group name="main_info" string="Thông tin hóa đơn">
                             <group>
                                 <field name="transaction_id" string="Giao dịch liên quan" options="{'no_create': True}"/>
                                 <field name="invoice_date"/>
-                                <field name="state" readonly="1"/>
                             </group>
                             <group>
                                 <field name="total_cost"/>
-                                <field name="discount_amount"/>
-                                <field name="surcharge"/>
-                                <field name="tax_amount"/>
+                                <field name="discount_percent"/>
+                                <field name="surcharge_percent"/>
+                                <field name="tax_percent"/>
                                 <field name="total_amount" readonly="1"/>
                             </group>
                         </group>
-                        <!-- ✅ BỔ SUNG MỚI: Liên kết với phiên chơi (Session) -->
+
+                        <!-- ==== Thông tin phiên chơi ==== -->
                         <group name="session_info" string="Thông tin phiên chơi">
                             <group>
                                 <field name="session_id" string="Phiên chơi" options="{'no_create': True}" required="1"/>
                             </group>
                         </group>
-                        <!-- ✅ HẾT PHẦN BỔ SUNG -->
 
-
+                        <!-- ==== Thời gian sử dụng ==== -->
                         <group name="time_info" string="Thời gian sử dụng">
                             <group>
                                 <field name="start_time"/>
@@ -53,16 +53,8 @@
                             </page>
                         </notebook>
 
+                        <!-- ❌ Bỏ footer vì không còn các hành động trạng thái -->
                         <footer>
-                            <button name="action_confirm" string="Xác nhận" type="object"
-                                    class="btn-primary"
-                                    invisible="state != 'draft'"/>
-                            <button name="action_pay" string="Thanh toán" type="object"
-                                    class="btn-success"
-                                    invisible="state != 'confirmed'"/>
-                            <button name="action_cancel" string="Hủy" type="object"
-                                    class="btn-secondary"
-                                    invisible="state in ('cancelled','paid')"/>
                             <button string="Đóng" class="btn-secondary" special="cancel"/>
                         </footer>
                     </sheet>
@@ -77,12 +69,13 @@
             <field name="arch" type="xml">
                 <list string="Danh sách hóa đơn" default_order="invoice_date desc">
                     <field name="customer_id"/>
+                    <field name="session_id"/>
                     <field name="transaction_id"/>
                     <field name="total_cost"/>
-                    <field name="tax_amount"/>
+                    <field name="discount_percent"/>
+                    <field name="tax_percent"/>
                     <field name="total_amount"/>
                     <field name="invoice_date"/>
-                    <field name="state"/>
                 </list>
             </field>
         </record>
@@ -95,7 +88,7 @@
             <field name="view_mode">list,form</field>
         </record>
 
-        <!-- ===== MENU GỐC ĐỘC LẬP ===== -->
+        <!-- ===== MENU GỐC ===== -->
         <menuitem id="menu_cyber_invoice_root"
                   name="Cyber Invoice"
                   sequence="10"

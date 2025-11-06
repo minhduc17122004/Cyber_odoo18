@@ -27,17 +27,18 @@ class CyberInvoice(models.Model):
 
     # ==== THÔNG TIN HÓA ĐƠN ====
     total_cost = fields.Float(string='Tổng chi phí', digits=(10, 2), required=True)
-    discount_amount = fields.Float(string='Giảm giá', digits=(10, 2))
-    surcharge = fields.Float(string='Phụ phí', digits=(10, 2))
-    tax_amount = fields.Float(string='Thuế', digits=(10, 2))
-    total_amount = fields.Float(string='Tổng tiền thanh toán', digits=(10, 2), compute='_compute_total_amount', store=True)
 
-    state = fields.Selection([
-        ('draft', 'Nháp'),
-        ('confirmed', 'Đã xác nhận'),
-        ('paid', 'Đã thanh toán'),
-        ('cancelled', 'Đã hủy'),
-    ], string='Trạng thái', default='draft', required=True)
+    # chuyển sang phần trăm (%)
+    discount_percent = fields.Float(string='Giảm giá (%)', digits=(5, 2), default=0.0)
+    surcharge_percent = fields.Float(string='Phụ phí (%)', digits=(5, 2), default=0.0)
+    tax_percent = fields.Float(string='Thuế (%)', digits=(5, 2), default=0.0)
+
+    total_amount = fields.Float(
+        string='Tổng tiền thanh toán',
+        digits=(10, 2),
+        compute='_compute_total_amount',
+        store=True
+    )
 
     invoice_date = fields.Datetime(string='Ngày lập hóa đơn', default=fields.Datetime.now, required=True)
     start_time = fields.Datetime(string='Bắt đầu')
@@ -46,11 +47,15 @@ class CyberInvoice(models.Model):
 
     note = fields.Text(string='Ghi chú thêm')
 
-    # ==== TÍNH TOÁN TỰ ĐỘNG ====
-    @api.depends('total_cost', 'discount_amount', 'surcharge', 'tax_amount')
+    # ==== TÍNH TOÁN ====
+    @api.depends('total_cost', 'discount_percent', 'surcharge_percent', 'tax_percent')
     def _compute_total_amount(self):
         for rec in self:
-            rec.total_amount = (rec.total_cost or 0) - (rec.discount_amount or 0) + (rec.surcharge or 0) + (rec.tax_amount or 0)
+            base = rec.total_cost or 0
+            discount = base * (rec.discount_percent or 0) / 100
+            surcharge = base * (rec.surcharge_percent or 0) / 100
+            tax = base * (rec.tax_percent or 0) / 100
+            rec.total_amount = base - discount + surcharge + tax
 
     @api.depends('start_time', 'end_time')
     def _compute_duration(self):
@@ -60,31 +65,18 @@ class CyberInvoice(models.Model):
             else:
                 rec.duration = 0.0
 
-    # ==== RÀNG BUỘC DỮ LIỆU ====
+    # ==== RÀNG BUỘC ====
     @api.constrains('total_cost')
     def _check_total_cost(self):
         for rec in self:
             if rec.total_cost <= 0:
                 raise ValidationError(_("Tổng chi phí phải lớn hơn 0."))
 
-    # ==== HÀNH ĐỘNG ====
-    def action_confirm(self):
-        """Xác nhận hóa đơn"""
+    @api.onchange('session_id')
+    def _onchange_session_id(self):
+        """Tự động lấy giao dịch liên quan khi chọn session"""
         for rec in self:
-            if rec.state != 'draft':
-                raise ValidationError(_("Chỉ có thể xác nhận hóa đơn ở trạng thái 'Nháp'."))
-            rec.state = 'confirmed'
-
-    def action_pay(self):
-        """Đánh dấu hóa đơn đã thanh toán"""
-        for rec in self:
-            if rec.state != 'confirmed':
-                raise ValidationError(_("Chỉ có thể thanh toán hóa đơn sau khi đã xác nhận."))
-            rec.state = 'paid'
-
-    def action_cancel(self):
-        """Hủy hóa đơn"""
-        for rec in self:
-            if rec.state == 'paid':
-                raise ValidationError(_("Không thể hủy hóa đơn đã thanh toán."))
-            rec.state = 'cancelled'
+            if rec.session_id and rec.session_id.transaction_id:
+                rec.transaction_id = rec.session_id.transaction_id
+            else:
+                rec.transaction_id = False
