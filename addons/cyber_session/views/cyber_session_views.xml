@@ -16,20 +16,34 @@
                              <field name="name" readonly="1"/>
                          </h1>
                      </div>
-                     <group>
-                         <group>
-                             <field name="account_id"/>
+                    <group>
+                        <group>
+                            <field name="account_id"/>
                              <field name="product_machine_id"/>
-                             <field name="price_per_hour"/>
-                             <field name="total_cost" readonly="1"/>
-                         </group>
-                         <group>
-                             <field name="start_time"/>
-                             <field name="end_time"/>
-                             <field name="duration" readonly="1"/>
-                             <field name="currency_id" invisible="1"/>
-                         </group>
-                     </group>
+                            <field name="price_per_hour"/>
+                            <field name="total_cost" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="start_time"/>
+                            <field name="end_time"/>
+                            <field name="time_played" 
+                                   string="Thời gian đã chơi (giờ)"
+                                   readonly="1"
+                                   widget="float_time"/>
+                            <field name="end_time_expected" 
+                                   string="Thời gian đóng phiên dự kiến" 
+                                   readonly="1"
+                                   widget="datetime"
+                                   invisible="state != 'running'"/>
+                            <field name="duration" readonly="1"/>
+                            <field name="play_time_remaining_virtual" 
+                                   string="Thời gian còn lại" 
+                                   readonly="1"
+                                   widget="float_time"
+                                   invisible="state != 'running'"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
 
                     <notebook>
                         <!-- TAB ORDERS -->
@@ -69,7 +83,19 @@
                 <field name="account_id"/>
                 <field name="product_machine_id"/>
                 <field name="start_time"/>
+                <field name="time_played" 
+                       string="Đã chơi"
+                       widget="float_time"
+                       optional="show"/>
+                <field name="end_time_expected" 
+                       string="Đóng phiên dự kiến"
+                       widget="datetime"
+                       optional="show"/>
                 <field name="duration"/>
+                <field name="play_time_remaining_virtual" 
+                       string="Thời gian còn lại" 
+                       widget="float_time"
+                       optional="show"/>
                 <field name="total_cost"/>
                 <field name="state"/>
             </list>

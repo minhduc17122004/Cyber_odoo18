@@ -69,6 +69,12 @@ class CyberAccount(models.Model):
     @api.depends('balance')
     def _compute_play_time_remaining(self):
         for account in self:
+            # ✅ Check xem model cyber.session có tồn tại không
+            if 'cyber.session' not in self.env:
+                account.play_time_remaining = 0.0
+                account.play_time_remaining_seconds = 0.0
+                continue
+            
             session = self.env['cyber.session'].search([
                 ('account_id', '=', account.id),
                 ('state', '=', 'running')

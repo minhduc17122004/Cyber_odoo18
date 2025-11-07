@@ -30,104 +30,133 @@ class CyberSaleOrderInSession(models.Model):
     @api.model
     def create(self, vals):
         """Khi tạo order mới trong session:
-        - Tạo transaction chi tiêu tương ứng.
-        - Trừ tiền account.
-        - Tính lại total_cost & play_time_remaining.
+        - ✅ KIỂM TRA balance TRƯỚC KHI tạo order
+        - ✅ Tạo transaction chi tiêu
+        - ✅ Trừ tiền qua transaction (transaction.create sẽ tự động update balance)
+        - ✅ Tự động đóng phiên nếu hết tiền
         """
-        order = super(CyberSaleOrderInSession, self).create(vals)
-        session = order.session_id
+        # ✅ Tính line_total trước khi tạo record
+        product = self.env['product.product'].browse(vals.get('product_id'))
+        quantity = vals.get('quantity', 1.0)
+        price_unit = vals.get('price_unit', product.list_price if product else 0.0)
+        line_total = quantity * price_unit
+        
+        # ✅ Lấy session và account
+        session = self.env['cyber.session'].browse(vals.get('session_id'))
         account = session.account_id
 
         if session.state != 'running':
             raise UserError(_("Không thể thêm order khi phiên đã đóng."))
 
-        # ✅ Kiểm tra đủ tiền
-        if account.balance < order.line_total:
-            raise ValidationError(_("Số dư không đủ để mua sản phẩm này."))
+        # ✅ KIỂM TRA balance TRƯỚC (undo automatic nếu không đủ)
+        if account.balance < line_total:
+            raise ValidationError(
+                _("⚠️ Số dư không đủ để mua sản phẩm này!\n\nCần: %s VND\nCó: %s VND\nThiếu: %s VND") 
+                % (line_total, account.balance, line_total - account.balance)
+            )
 
-        # ✅ Trừ tiền và ghi transaction
-        account.sudo().write({
-            'total_spent': account.total_spent + order.line_total,
-        })
-        account.sudo()._compute_balance()
-        account.sudo()._compute_play_time_remaining()
+        # ✅ Tạo order (AFTER validation)
+        order = super(CyberSaleOrderInSession, self).create(vals)
 
+        # ✅ Tạo transaction (transaction.create sẽ tự động update balance & total_spent)
         self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
             'account_id': account.id,
             'session_id': session.id,
             'amount': order.line_total,
             'type': 'spend',
-            'payment_method': 'cash',
+            'payment_method': 'balance',
         })
 
-        # ✅ Cập nhật session tổng chi phí
-        session._compute_total_cost()
-
-        # ✅ Tự động đóng nếu hết tiền
-        session._auto_close_if_out_of_balance()
+        # ✅ Odoo sẽ tự động trigger:
+        #    - _compute_balance() vì total_spent changed
+        #    - _compute_end_time_expected() vì balance changed
+        #    - _compute_total_cost() vì order_line_ids changed
+        # ✅ end_time_expected sẽ được recalc → nếu <= now → _close_if_expired() sẽ đóng
 
         return order
 
     def write(self, vals):
         """Khi cập nhật order (thay đổi số lượng, giá):
-        - Cập nhật lại transaction tương ứng.
-        - Tính lại balance và giờ chơi còn lại.
+        - Cập nhật lại transaction amount
+        - Odoo sẽ tự động trigger balance & play_time_remaining recalculation
         """
+        # ⚠️ Lưu old line_total TRƯỚC khi write
+        old_amounts = {}
+        for rec in self:
+            old_amounts[rec.id] = rec.line_total
+        
         res = super(CyberSaleOrderInSession, self).write(vals)
+        
         for rec in self:
             session = rec.session_id
             account = session.account_id
             if session.state != 'running':
                 continue
 
-            # ✅ Cập nhật lại transaction (nếu có thay đổi line_total)
+            # ✅ Nếu có thay đổi line_total, cập nhật transaction
             if 'quantity' in vals or 'price_unit' in vals:
-                # Tìm transaction gắn với session (nếu có)
-                tx = self.env['cyber.transaction'].search([
-                    ('session_id', '=', session.id),
-                    ('account_id', '=', account.id),
-                    ('amount', '=', rec.line_total),
-                    ('type', '=', 'spend')
-                ], limit=1)
-                if tx:
-                    tx.sudo().write({'amount': rec.line_total})
-
-                # ✅ Recompute balance & playtime
-                account.sudo()._compute_balance()
-                account.sudo()._compute_play_time_remaining()
-                session._compute_total_cost()
-                session._auto_close_if_out_of_balance()
+                old_amount = old_amounts.get(rec.id, 0)
+                new_amount = rec.line_total
+                amount_diff = new_amount - old_amount
+                
+                if amount_diff != 0:
+                    # Tìm transaction gắn với order này (search by old amount)
+                    tx = self.env['cyber.transaction'].search([
+                        ('session_id', '=', session.id),
+                        ('account_id', '=', account.id),
+                        ('amount', '=', old_amount),
+                        ('type', '=', 'spend')
+                    ], limit=1)
+                    
+                    if tx:
+                        # Update transaction amount → triggers balance recalc
+                        tx.sudo().write({'amount': new_amount})
+                    else:
+                        # Nếu không tìm thấy transaction cũ, tạo transaction cho diff
+                        if amount_diff > 0:
+                            self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
+                                'account_id': account.id,
+                                'session_id': session.id,
+                                'amount': amount_diff,
+                                'type': 'spend',
+                                'payment_method': 'balance',
+                            })
+                
+                # ✅ Odoo sẽ tự động trigger balance & play_time_remaining
+                # ✅ Trigger session total_cost recalc (vì order_ids.line_total changed)
+                # ✅ end_time_expected sẽ được recalc tự động
 
         return res
 
     def unlink(self):
         """Khi xóa order:
-        - Hoàn lại tiền (nếu cần).
-        - Cập nhật balance và playtime.
+        - Xóa transaction tương ứng
+        - Odoo sẽ tự động hoàn lại balance và play_time_remaining
         """
+        # ⚠️ Lưu thông tin TRƯỚC khi xóa
+        sessions_to_update = self.mapped('session_id')
+        
         for rec in self:
             session = rec.session_id
             account = session.account_id
             if session.state == 'running':
-                # ✅ Hoàn tiền
-                account.sudo().write({
-                    'total_spent': max(0, account.total_spent - rec.line_total),
-                })
-                account.sudo()._compute_balance()
-                account.sudo()._compute_play_time_remaining()
-
-                # ✅ Xóa transaction liên quan
+                # ✅ Tìm và xóa transaction liên quan
                 tx = self.env['cyber.transaction'].search([
                     ('session_id', '=', session.id),
                     ('account_id', '=', account.id),
                     ('amount', '=', rec.line_total),
                     ('type', '=', 'spend')
-                ])
-                tx.unlink()
+                ], limit=1, order='create_date desc')
+                
+                if tx:
+                    # ⚠️ Hoàn lại total_spent TRƯỚC khi xóa transaction
+                    account.sudo().write({
+                        'total_spent': max(0, account.total_spent - tx.amount),
+                    })
+                    # ✅ Odoo sẽ tự động trigger _compute_balance() và _compute_play_time_remaining()
+                    tx.sudo().unlink()
 
         res = super(CyberSaleOrderInSession, self).unlink()
 
-        # ✅ Cập nhật lại tổng chi phí
-        for session in self.mapped('session_id'):
-            session._compute_total_cost()
+        # ✅ Odoo sẽ tự động trigger _compute_total_cost() vì order_ids changed
         return res

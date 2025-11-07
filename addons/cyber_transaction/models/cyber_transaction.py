@@ -32,6 +32,7 @@ class CyberTransaction(models.Model):
         ('cash', 'Tiền mặt'),
         ('ewallet', 'Ví điện tử'),
         ('banking', 'Chuyển khoản ngân hàng'),
+        ('balance', 'Từ số dư tài khoản'),  # ✅ Thêm option mới
     ], string='Phương thức thanh toán', required=True, default='cash')
 
     create_date = fields.Datetime(string='Ngày tạo', readonly=True)
@@ -65,28 +66,24 @@ class CyberTransaction(models.Model):
             transaction.bonus_amount = bonus
             # <<< ADD END
 
-            # Cập nhật tổng số lần & ngày nạp gần nhất (nếu có field tương ứng)
-            if hasattr(account, 'total_recharge'):
-                account.total_recharge += total_add
-            if hasattr(account, 'last_topup_date'):
-                account.last_topup_date = transaction.create_date
+            # ✅ Cập nhật total_recharge (balance sẽ tự động được tính từ computed field)
+            account.sudo().write({
+                'total_recharge': account.total_recharge + total_add,
+                'last_topup_date': transaction.create_date,
+            })
 
         # Nếu là giao dịch chi tiêu
         elif transaction.type == 'spend':
             if not self.env.context.get('from_session') and transaction.amount > account.balance:
                 raise ValidationError(_("Số dư không đủ để thực hiện giao dịch chi tiêu."))
             
-            account.total_spent += transaction.amount
+            # ✅ Cập nhật total_spent (balance sẽ tự động được tính từ computed field)
+            account.sudo().write({
+                'total_spent': account.total_spent + transaction.amount,
+                'last_spend_date': transaction.create_date,
+            })
 
-            if hasattr(account, 'last_spend_date'):
-                account.last_spend_date = transaction.create_date
-            # 
-
-        # Lưu lại thay đổi
-        account.sudo().write({
-            'balance': account.balance,
-            'total_spent': account.total_spent,
-            'total_recharge': account.total_recharge,
-        })
+        # ✅ Odoo sẽ tự động trigger _compute_balance() vì total_spent/total_recharge changed
+        # ✅ Odoo sẽ tự động trigger _compute_play_time_remaining() vì balance changed
 
         return transaction
