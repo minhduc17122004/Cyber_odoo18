@@ -62,9 +62,32 @@
 
     <!-- Menu -->
     <menuitem id="menu_cyber_root" name="Cyber Customer"/>
+    
     <menuitem id="menu_cyber_customer"
               name="Khách hàng"
               parent="menu_cyber_root"
-              action="action_cyber_customer"/>
+              action="action_cyber_customer"
+              sequence="10"/>
+    
+    <!-- Account Menu -->
+    <menuitem id="menu_cyber_account"
+              name="Tài khoản"
+              parent="menu_cyber_root"
+              action="cyber_account.action_cyber_account"
+              sequence="15"/>
+    
+    <!-- Transaction Menu -->
+    <menuitem id="menu_cyber_transaction"
+              name="Giao dịch"
+              parent="menu_cyber_root"
+              action="cyber_transaction.action_cyber_transaction"
+              sequence="18"/>
+    
+    <!-- Segment Menu -->
+    <menuitem id="menu_cyber_segment"
+              name="Phân hạng khách hàng"
+              parent="menu_cyber_root"
+              action="customer_segment.action_customer_segment"
+              sequence="5"/>
   </data>
 </odoo>

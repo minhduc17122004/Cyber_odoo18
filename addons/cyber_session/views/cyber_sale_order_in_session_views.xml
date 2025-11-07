@@ -1,21 +1,24 @@
 <odoo>
+    <!-- ============================= -->
     <!-- LIST VIEW -->
+    <!-- ============================= -->
     <record id="view_cyber_sale_order_in_session_list" model="ir.ui.view">
         <field name="name">cyber.sale_order_in_session.list</field>
         <field name="model">cyber.sale_order_in_session</field>
         <field name="arch" type="xml">
-            <list editable="bottom">
+            <list editable="bottom" string="Orders in Session">
                 <field name="session_id"/>
                 <field name="product_id"/>
-                <field name="quantity"/>
+                <field name="qty" string="Quantity"/>
                 <field name="price_unit"/>
                 <field name="line_total" readonly="1"/>
-                <field name="note"/>
             </list>
         </field>
     </record>
 
+    <!-- ============================= -->
     <!-- FORM VIEW -->
+    <!-- ============================= -->
     <record id="view_cyber_sale_order_in_session_form" model="ir.ui.view">
         <field name="name">cyber.sale_order_in_session.form</field>
         <field name="model">cyber.sale_order_in_session</field>
@@ -26,23 +29,58 @@
                         <group>
                             <field name="session_id"/>
                             <field name="product_id"/>
-                            <field name="quantity"/>
+                            <field name="qty" string="Quantity"/>
                         </group>
                         <group>
                             <field name="price_unit"/>
                             <field name="line_total" readonly="1"/>
-                            <field name="note"/>
                         </group>
+                    </group>
+
+                    <group>
+                        <field name="create_date" readonly="1"/>
+                        <field name="write_date" readonly="1"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
 
+    <!-- ============================= -->
+    <!-- SEARCH VIEW -->
+    <!-- ============================= -->
+    <record id="view_cyber_sale_order_in_session_search" model="ir.ui.view">
+        <field name="name">cyber.sale_order_in_session.search</field>
+        <field name="model">cyber.sale_order_in_session</field>
+        <field name="arch" type="xml">
+            <search string="Search Orders in Session">
+                <field name="session_id"/>
+                <field name="product_id"/>
+                <field name="qty"/>
+                <filter name="today" string="Today" domain="[('create_date', '>=', context_today())]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Session" name="group_session" context="{'group_by': 'session_id'}"/>
+                    <filter string="Product" name="group_product" context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============================= -->
     <!-- ACTION -->
+    <!-- ============================= -->
     <record id="action_cyber_sale_order_in_session" model="ir.actions.act_window">
-        <field name="name">Orders in Session</field>
+        <field name="name">Đơn hàng trong phiên</field>
         <field name="res_model">cyber.sale_order_in_session</field>
         <field name="view_mode">list,form</field>
     </record>
+
+    <!-- ============================= -->
+    <!-- MENU ITEM (tuỳ chọn, nếu chưa có) -->
+    <!-- ============================= -->
+    <menuitem id="menu_cyber_sale_order_in_session"
+              name="Đơn hàng trong phiên"
+              parent="cyber_customer.menu_cyber_root"
+              action="action_cyber_sale_order_in_session"
+              sequence="30"/>
 </odoo>

@@ -25,8 +25,14 @@ class CyberSaleOrderInSession(models.Model):
     @api.model
     def create(self, vals):
         session = self.env['cyber.session'].browse(vals.get('session_id'))
-        if not session or session.state != 'running':
-            raise UserError(_("Session không hợp lệ hoặc đã đóng."))
+        if not session:
+            raise UserError(_("Session không hợp lệ."))
+        
+        if session.state == 'draft':
+            raise UserError(_("Không thể tạo order khi session đang ở trạng thái Draft. Vui lòng Start session trước."))
+        
+        if session.state != 'running':
+            raise UserError(_("Session đã đóng, không thể tạo order."))
 
         # Tính line_total tạm nếu caller không truyền
         qty = vals.get('qty', 1.0) or 0.0
@@ -53,24 +59,24 @@ class CyberSaleOrderInSession(models.Model):
         # Cho tạo order
         order = super(CyberSaleOrderInSession, self).create(vals)
 
-        # Nếu sau order số dư còn lại = 0 → tạo 2 transaction và đóng phiên
-        equal_after = abs(new_order_total - balance_in_session_temp) < 0.005  # so gần bằng
-        if equal_after:
-            # 1) Transaction cho ORDER
+        # ✅ TẠO TRANSACTION NGAY CHO ORDER (không đợi đóng session)
+        if session.account_id and new_order_total > 0:
             self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
                 'account_id': session.account_id.id,
                 'session_id': session.id,
-                'order_id': order.id if 'order_id' in self.env['cyber.transaction']._fields else False,
                 'amount': new_order_total,
                 'type': 'spend',
                 'payment_method': 'balance',
-                'note': 'order:close'
+                'note': f'order (Order ID: {order.id})'
             })
 
-            # 2) Transaction cho SERVICE (toàn bộ tới hiện tại)
+        # Nếu sau order số dư còn lại = 0 → đóng phiên
+        equal_after = abs(new_order_total - balance_in_session_temp) < 0.005  # so gần bằng
+        if equal_after and session.account_id:
+            # Transaction cho SERVICE (toàn bộ tới hiện tại)
             session._create_service_transaction_if_needed(service_cost_so_far, when_label='close-by-order')
 
-            # 3) Đóng session
+            # Đóng session
             session.with_context(skip_check=True).sudo().write({
                 'end_time': fields.Datetime.now(),
                 'state': 'closed',
@@ -90,6 +96,11 @@ class CyberSaleOrderInSession(models.Model):
         if any(k in vals for k in ('qty', 'price_unit', 'line_total')):
             for rec in self:
                 session = rec.session_id
+                
+                # Kiểm tra state của session
+                if session.state == 'draft':
+                    raise UserError(_("Không thể chỉnh sửa order khi session đang ở trạng thái Draft."))
+                
                 if session.state != 'running':
                     raise UserError(_("Không thể chỉnh sửa order vì session đã đóng."))
 
@@ -107,28 +118,42 @@ class CyberSaleOrderInSession(models.Model):
                     raise UserError(_("Sửa order vượt quá số tiền còn lại trong phiên. Còn: %s VND, Order mới: %s VND")
                                     % (balance_in_session_temp, new_line_total))
 
-                # Nếu chỉnh sửa làm vừa khít số dư → đóng phiên tương tự như create
-                equal_after = abs(new_line_total - balance_in_session_temp) < 0.005
+                # Tính delta (phần chênh lệch)
+                delta = round(new_line_total - rec.line_total, 2)
+                
+                # Cập nhật order
                 res = super(CyberSaleOrderInSession, self).write(vals)
 
-                if equal_after:
-                    # 1) Transaction cho ORDER phần tăng thêm (nếu có chênh lệch)
-                    delta = round(new_line_total - rec.line_total, 2)
+                # ✅ TẠO TRANSACTION CHO PHẦN CHÊNH LỆCH (nếu có)
+                if delta != 0 and session.account_id:
                     if delta > 0:
+                        # Tăng order → tạo transaction spend thêm
                         self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
                             'account_id': session.account_id.id,
                             'session_id': session.id,
-                            'order_id': rec.id if 'order_id' in self.env['cyber.transaction']._fields else False,
                             'amount': delta,
                             'type': 'spend',
                             'payment_method': 'balance',
-                            'note': 'order-edit:close'
+                            'note': f'order-edit (+{delta}) (Order ID: {rec.id})'
+                        })
+                    else:
+                        # Giảm order → tạo transaction refund (topup)
+                        self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
+                            'account_id': session.account_id.id,
+                            'session_id': session.id,
+                            'amount': abs(delta),
+                            'type': 'topup',
+                            'payment_method': 'balance',
+                            'note': f'order-edit-refund ({delta}) (Order ID: {rec.id})'
                         })
 
-                    # 2) Service tới hiện tại
+                # Nếu chỉnh sửa làm vừa khít số dư → đóng phiên
+                equal_after = abs(new_line_total - balance_in_session_temp) < 0.005
+                if equal_after and session.account_id:
+                    # Service tới hiện tại
                     session._create_service_transaction_if_needed(service_cost_so_far, when_label='close-by-order-edit')
 
-                    # 3) Đóng
+                    # Đóng
                     session.with_context(skip_check=True).sudo().write({
                         'end_time': fields.Datetime.now(),
                         'state': 'closed',

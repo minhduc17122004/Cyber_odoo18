@@ -36,6 +36,10 @@ class CyberTransaction(models.Model):
     ], string='Phương thức thanh toán', required=True, default='cash')
 
     create_date = fields.Datetime(string='Ngày tạo', readonly=True)
+    
+    # ✅ Field note để phân biệt transaction (tránh duplicate)
+    note = fields.Char(string='Ghi chú', help="Ví dụ: service:auto, service:manual, order:1234")
+    
     # >>> ADD START: thêm field hiển thị số tiền bonus thực tế
     bonus_amount = fields.Float(string='Số tiền khuyến mãi (₫)', readonly=True, default=0.0)
     # <<< ADD END

@@ -1,76 +1,97 @@
 <odoo>
+    <!-- ============================= -->
     <!-- FORM VIEW -->
+    <!-- ============================= -->
     <record id="view_cyber_session_form" model="ir.ui.view">
         <field name="name">cyber.session.form</field>
         <field name="model">cyber.session</field>
         <field name="arch" type="xml">
-             <form string="Cyber Session">
-                 <header>
-                     <button name="action_close_manual" string="Close Session" type="object"
-                             invisible="state != 'running'" class="btn-primary"/>
-                     <field name="state" widget="statusbar" statusbar_visible="running,closed"/>
-                 </header>
-                 <sheet>
-                     <div class="oe_title">
-                         <h1>
-                             <field name="name" readonly="1"/>
-                         </h1>
-                     </div>
+            <form string="Cyber Session">
+                <header>
+                    <button name="action_start_session"
+                            string="Start Session"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_close_manual"
+                            string="Close Session"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'running'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,closed"/>
+                </header>
+
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
                     <group>
                         <group>
-                            <field name="account_id"/>
-                            <field name="product_machine_id"/>
-                            <field name="price_per_hour"/>
+                            <field name="account_id" required="1"/>
+                            <field name="product_machine_id" required="1"/>
+                            <field name="price_per_hour" required="1"/>
+                            <field name="total_service" readonly="1"/>
+                            <field name="total_order" readonly="1"/>
                             <field name="total_cost" readonly="1"/>
-                            <field name="virtual_balance" 
-                                   string="Số dư khả dụng trong phiên" 
-                                   readonly="1"
-                                   invisible="state != 'running'"
-                                   widget="monetary"/>
                         </group>
+
                         <group>
-                            <field name="start_time"/>
-                            <field name="end_time"/>
+                            <field name="start_time" readonly="state != 'draft'"/>
+                            <field name="end_time" readonly="1"/>
                             <field name="time_played" 
                                    string="Thời gian đã chơi (giờ)"
                                    readonly="1"
-                                   widget="float_time"/>
+                                   widget="float_time"
+                                   invisible="state == 'draft'"/>
                             <field name="end_time_expected" 
-                                   string="Thời gian đóng phiên dự kiến" 
+                                   string="Thời gian đóng phiên dự kiến"
                                    readonly="1"
                                    widget="datetime"
                                    invisible="state != 'running'"/>
-                            <field name="duration" readonly="1"/>
-                            <field name="play_time_remaining_virtual" 
-                                   string="Thời gian còn lại" 
+                            <field name="duration" readonly="1" invisible="state == 'draft'"/>
+                            <field name="play_time_remaining_virtual"
+                                   string="Thời gian còn lại (giờ)"
                                    readonly="1"
                                    widget="float_time"
+                                   invisible="state != 'running'"/>
+                            <field name="balance_in_session"
+                                   string="Số tiền còn lại trong phiên"
+                                   readonly="1"
+                                   widget="monetary"
                                    invisible="state != 'running'"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
                     </group>
 
                     <notebook>
+                        <!-- ============================= -->
                         <!-- TAB ORDERS -->
-                        <page string="Orders in Session">
+                        <!-- ============================= -->
+                        <page string="Orders in Session" invisible="state == 'draft'">
                             <field name="order_ids" context="{'default_session_id': id}">
                                 <list editable="bottom">
                                     <field name="product_id"/>
-                                    <field name="quantity"/>
+                                    <field name="qty"/>
                                     <field name="price_unit"/>
                                     <field name="line_total" readonly="1"/>
-                                    <field name="note"/>
                                 </list>
                                 <form>
                                     <group>
                                         <field name="product_id"/>
-                                        <field name="quantity"/>
+                                        <field name="qty"/>
                                         <field name="price_unit"/>
                                         <field name="line_total" readonly="1"/>
-                                        <field name="note"/>
                                     </group>
                                 </form>
                             </field>
+                        </page>
+
+                        <!-- ============================= -->
+                        <!-- TAB CHỨNG TỪ / LOG -->
+                        <!-- ============================= -->
+                        <page string="Chatter / Notes">
+                            <field name="message_ids" widget="mail_thread" readonly="1"/>
                         </page>
                     </notebook>
                 </sheet>
@@ -78,7 +99,9 @@
         </field>
     </record>
 
+    <!-- ============================= -->
     <!-- LIST VIEW -->
+    <!-- ============================= -->
     <record id="view_cyber_session_list" model="ir.ui.view">
         <field name="name">cyber.session.list</field>
         <field name="model">cyber.session</field>
@@ -88,29 +111,32 @@
                 <field name="account_id"/>
                 <field name="product_machine_id"/>
                 <field name="start_time"/>
-                <field name="time_played" 
-                       string="Đã chơi"
-                       widget="float_time"
-                       optional="show"/>
-                <field name="end_time_expected" 
-                       string="Đóng phiên dự kiến"
-                       widget="datetime"
-                       optional="show"/>
+                <field name="end_time_expected" string="Đóng dự kiến" widget="datetime" optional="show"/>
                 <field name="duration"/>
-                <field name="play_time_remaining_virtual" 
-                       string="Thời gian còn lại" 
-                       widget="float_time"
-                       optional="show"/>
-                <field name="total_cost"/>
+                <field name="play_time_remaining_virtual" string="Còn lại (giờ)" widget="float_time" optional="show"/>
+                <field name="total_service"/>
+                <field name="total_order"/>
+                <field name="balance_in_session" string="Còn lại (VND)" widget="monetary"/>
                 <field name="state"/>
             </list>
         </field>
     </record>
 
+    <!-- ============================= -->
     <!-- ACTION -->
+    <!-- ============================= -->
     <record id="action_cyber_session" model="ir.actions.act_window">
-        <field name="name">Cyber Sessions</field>
+        <field name="name">Phiên chơi</field>
         <field name="res_model">cyber.session</field>
         <field name="view_mode">list,form</field>
     </record>
+
+    <!-- ============================= -->
+    <!-- MENU ITEM -->
+    <!-- ============================= -->
+    <menuitem id="menu_cyber_session"
+              name="Phiên chơi"
+              parent="cyber_customer.menu_cyber_root"
+              action="action_cyber_session"
+              sequence="20"/>
 </odoo>

@@ -10,7 +10,6 @@
         'security/ir.model.access.csv',
         'views/cyber_session_views.xml',
         'views/cyber_sale_order_in_session_views.xml',
-        'views/menus.xml',
         'data/cron_close_sessions.xml',
     ],
     'installable': True,
