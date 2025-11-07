@@ -19,9 +19,14 @@
                     <group>
                         <group>
                             <field name="account_id"/>
-                             <field name="product_machine_id"/>
+                            <field name="product_machine_id"/>
                             <field name="price_per_hour"/>
                             <field name="total_cost" readonly="1"/>
+                            <field name="virtual_balance" 
+                                   string="Số dư khả dụng trong phiên" 
+                                   readonly="1"
+                                   invisible="state != 'running'"
+                                   widget="monetary"/>
                         </group>
                         <group>
                             <field name="start_time"/>

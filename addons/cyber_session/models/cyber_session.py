@@ -1,6 +1,6 @@
 from datetime import timedelta
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class CyberSession(models.Model):
@@ -44,6 +44,14 @@ class CyberSession(models.Model):
         digits=(12, 6),
         help="Thời gian còn lại có thể chơi dựa trên balance hiện tại và chi phí đã phát sinh. Cập nhật real-time."
     )
+    
+    virtual_balance = fields.Float(
+        string='Virtual Balance',
+        compute='_compute_virtual_balance',
+        store=False,
+        digits=(16, 2),
+        help="Số dư khả dụng trong phiên = balance - chi phí đã phát sinh (chưa charge)"
+    )
 
     # ========================
     # COMPUTE METHODS
@@ -64,7 +72,7 @@ class CyberSession(models.Model):
         for rec in self:
             session_cost = rec.duration * rec.price_per_hour
             orders_cost = sum(rec.order_ids.mapped('line_total'))
-            rec.total_cost = round(session_cost + orders_cost)
+            rec.total_cost = round(session_cost + orders_cost, 6)
 
     @api.depends('account_id.balance', 'account_id.total_spent', 'start_time', 'price_per_hour', 'state')
     def _compute_end_time_expected(self):
@@ -180,6 +188,30 @@ class CyberSession(models.Model):
             else:
                 rec.play_time_remaining_virtual = 0.0
 
+    @api.depends('account_id.balance', 'start_time', 'price_per_hour', 'state')
+    def _compute_virtual_balance(self):
+        """
+        ✅ Tính virtual balance = balance - chi phí đã phát sinh
+        - Đây là số dư thực tế có thể dùng để mua order
+        """
+        for rec in self:
+            if rec.state != 'running' or not rec.start_time:
+                rec.virtual_balance = rec.account_id.balance if rec.account_id else 0.0
+                continue
+            
+            acc = rec.account_id
+            if not acc:
+                rec.virtual_balance = 0.0
+                continue
+            
+            # Tính chi phí đã phát sinh
+            now = fields.Datetime.now()
+            time_played_hours = (now - rec.start_time).total_seconds() / 3600.0
+            cost_so_far = time_played_hours * rec.price_per_hour
+            
+            # Virtual balance = balance thực - chi phí đã phát sinh
+            rec.virtual_balance = max(0, acc.balance - cost_so_far)
+    
     # ========================
     # MAIN LOGIC
     # ========================
@@ -204,8 +236,8 @@ class CyberSession(models.Model):
                 ('type', '=', 'spend'),
             ], limit=1)
             
-            # ✅ Nếu chưa có transaction → Tạo mới (trường hợp đóng thủ công)
-            if not existing_transaction and session_cost > 0:
+            # ✅ Nếu có transaction → Tạo mới (trường hợp đóng thủ công)
+            if existing_transaction and session_cost > 0:
                 if acc.balance < session_cost:
                     # Không đủ tiền trả phí chơi
                     rec.message_post(body=_("⚠️ Session closed but insufficient balance to pay session fee. Cost: %s VND, Balance: %s VND") % (session_cost, acc.balance))
@@ -370,3 +402,87 @@ class CyberSession(models.Model):
             })
         
         return True
+
+
+class CyberSaleOrderInSession(models.Model):
+    _name = 'cyber.sale_order_in_session'
+    _description = 'Cyber Sale Order in Session'
+    _order = 'id desc'
+
+    # ========================
+    # FIELDS
+    # ========================
+    session_id = fields.Many2one('cyber.session', string='Session', required=True, ondelete='cascade')
+    product_id = fields.Many2one('product.product', string='Product', required=True)
+    quantity = fields.Float(string='Quantity', required=True, default=1.0)
+    price_unit = fields.Float(string='Unit Price (VND)', required=True, digits=(16, 2))
+    line_total = fields.Float(string='Line Total (VND)', compute='_compute_line_total', store=True, digits=(16, 2))
+
+    # ========================
+    # COMPUTE METHODS
+    # ========================
+    @api.depends('quantity', 'price_unit')
+    def _compute_line_total(self):
+        """Tính tổng cộng của dòng đơn hàng"""
+        for rec in self:
+            rec.line_total = rec.quantity * rec.price_unit
+
+    # ========================
+    # OVERRIDE METHODS
+    # ========================
+    @api.model
+    def create(self, vals):
+        """Khi tạo order mới trong session:
+        - ✅ KIỂM TRA virtual_balance (balance trong phiên) TRƯỚC KHI tạo order
+        - ✅ Tạo transaction chi tiêu
+        - ✅ Trừ tiền qua transaction (transaction.create sẽ tự động update balance)
+        - ✅ Tự động đóng phiên nếu hết tiền
+        """
+        # ✅ Tính line_total trước khi tạo record
+        product = self.env['product.product'].browse(vals.get('product_id'))
+        quantity = vals.get('quantity', 1.0)
+        price_unit = vals.get('price_unit', product.list_price if product else 0.0)
+        line_total = quantity * price_unit
+        
+        # ✅ Lấy session và account
+        session = self.env['cyber.session'].browse(vals.get('session_id'))
+        account = session.account_id
+
+        if session.state != 'running':
+            raise UserError(_("Không thể thêm order khi phiên đã đóng."))
+
+        # ✅ KIỂM TRA virtual_balance (balance trong phiên) TRƯỚC
+        if session.virtual_balance < line_total:
+            raise ValidationError(
+                _("⚠️ Số dư trong phiên không đủ để mua sản phẩm này!\n\n"
+                  "Cần: %s VND\n"
+                  "Số dư khả dụng trong phiên: %s VND\n"
+                  "Thiếu: %s VND\n\n"
+                  "💡 Lưu ý: Số dư này đã trừ đi chi phí chơi game chưa được tính (%s VND)")
+                % (
+                    line_total,
+                    session.virtual_balance,
+                    line_total - session.virtual_balance,
+                    account.balance - session.virtual_balance
+                )
+            )
+
+        # ✅ Tạo order (AFTER validation)
+        order = super(CyberSaleOrderInSession, self).create(vals)
+
+        # ✅ Tạo transaction (transaction.create sẽ tự động update balance & total_spent)
+        self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
+            'account_id': account.id,
+            'session_id': session.id,
+            'amount': order.line_total,
+            'type': 'spend',
+            'payment_method': 'balance',
+        })
+
+        # ✅ Odoo sẽ tự động trigger:
+        #    - _compute_balance() vì total_spent changed
+        #    - _compute_end_time_expected() vì balance changed
+        #    - _compute_total_cost() vì order_line_ids changed
+        # ✅ end_time_expected sẽ được recalc → nếu <= now → _close_if_expired() sẽ đóng
+
+        return order

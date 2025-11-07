@@ -1,162 +1,148 @@
+# -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
+
 
 class CyberSaleOrderInSession(models.Model):
     _name = 'cyber.sale_order_in_session'
-    _description = 'Sale Order in Session'
+    _description = 'Order in Cyber Session'
+    _order = 'id desc'
 
-    session_id = fields.Many2one('cyber.session', string='Session', ondelete='cascade', required=True)
+    session_id = fields.Many2one('cyber.session', string='Session', required=True, ondelete='cascade')
     product_id = fields.Many2one('product.product', string='Product', required=True)
-    quantity = fields.Float(string='Quantity', default=1.0)
-    price_unit = fields.Float(string='Unit Price (VND)', digits=(16, 0))
-    line_total = fields.Float(string='Line Total (VND)', compute='_compute_line_total', store=True, digits=(16, 0))
-    note = fields.Char(string='Ghi chú')
+    qty = fields.Float(string='Quantity', required=True, default=1.0, digits=(16, 2))
+    price_unit = fields.Float(string='Unit Price (VND)', required=True, digits=(16, 2))
+    line_total = fields.Float(string='Line Total (VND)', compute='_compute_line_total', store=True, digits=(16, 2))
 
-    @api.depends('quantity', 'price_unit')
+    @api.depends('qty', 'price_unit')
     def _compute_line_total(self):
         for rec in self:
-            rec.line_total = rec.quantity * rec.price_unit
+            rec.line_total = round((rec.qty or 0.0) * (rec.price_unit or 0.0), 2)
 
-    @api.onchange('product_id')
-    def _onchange_product_id(self):
-        """Tự động điền giá bán khi chọn sản phẩm"""
-        for rec in self:
-            if rec.product_id:
-                rec.price_unit = rec.product_id.list_price
-
-    # ==================================================
-    # OVERRIDES
-    # ==================================================
+    # ========================
+    # MAIN RULE: kiểm tra balance_in_session_temp khi tạo order
+    # ========================
     @api.model
     def create(self, vals):
-        """Khi tạo order mới trong session:
-        - ✅ KIỂM TRA balance TRƯỚC KHI tạo order
-        - ✅ Tạo transaction chi tiêu
-        - ✅ Trừ tiền qua transaction (transaction.create sẽ tự động update balance)
-        - ✅ Tự động đóng phiên nếu hết tiền
-        """
-        # ✅ Tính line_total trước khi tạo record
-        product = self.env['product.product'].browse(vals.get('product_id'))
-        quantity = vals.get('quantity', 1.0)
-        price_unit = vals.get('price_unit', product.list_price if product else 0.0)
-        line_total = quantity * price_unit
-        
-        # ✅ Lấy session và account
         session = self.env['cyber.session'].browse(vals.get('session_id'))
-        account = session.account_id
+        if not session or session.state != 'running':
+            raise UserError(_("Session không hợp lệ hoặc đã đóng."))
 
-        if session.state != 'running':
-            raise UserError(_("Không thể thêm order khi phiên đã đóng."))
+        # Tính line_total tạm nếu caller không truyền
+        qty = vals.get('qty', 1.0) or 0.0
+        price_unit = vals.get('price_unit', 0.0) or 0.0
+        new_order_total = round(qty * price_unit, 2) if 'line_total' not in vals else round(vals['line_total'], 2)
 
-        # ✅ KIỂM TRA balance TRƯỚC (undo automatic nếu không đủ)
-        if account.balance < line_total:
-            raise ValidationError(
-                _("⚠️ Số dư không đủ để mua sản phẩm này!\n\nCần: %s VND\nCó: %s VND\nThiếu: %s VND") 
-                % (line_total, account.balance, line_total - account.balance)
-            )
+        # Tính realtime:
+        #   service_cost_so_far + total_order_so_far
+        #   balance_in_session_now = acc.balance - service_cost_so_far - total_order_so_far
+        service_cost_so_far = session._service_cost_so_far()
+        total_order_so_far = session._current_total_order()
+        acc_balance_now = session.account_id.balance or 0.0
 
-        # ✅ Tạo order (AFTER validation)
+        balance_in_session_temp = round(acc_balance_now - service_cost_so_far - total_order_so_far, 2)
+
+        # So sánh theo yêu cầu:
+        # - Nếu new_order_total < balance_in_session_temp  → cho tạo order
+        # - Nếu new_order_total == balance_in_session_temp → tạo order, tạo 2 transaction (order + service), đóng session
+        # - Nếu new_order_total  > balance_in_session_temp → chặn
+        if new_order_total > balance_in_session_temp:
+            raise UserError(_("Không đủ tiền còn lại trong phiên để tạo order này. Còn: %s VND, Order: %s VND")
+                            % (balance_in_session_temp, new_order_total))
+
+        # Cho tạo order
         order = super(CyberSaleOrderInSession, self).create(vals)
 
-        # ✅ Tạo transaction (transaction.create sẽ tự động update balance & total_spent)
-        self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
-            'account_id': account.id,
-            'session_id': session.id,
-            'amount': order.line_total,
-            'type': 'spend',
-            'payment_method': 'balance',
-        })
+        # Nếu sau order số dư còn lại = 0 → tạo 2 transaction và đóng phiên
+        equal_after = abs(new_order_total - balance_in_session_temp) < 0.005  # so gần bằng
+        if equal_after:
+            # 1) Transaction cho ORDER
+            self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
+                'account_id': session.account_id.id,
+                'session_id': session.id,
+                'order_id': order.id if 'order_id' in self.env['cyber.transaction']._fields else False,
+                'amount': new_order_total,
+                'type': 'spend',
+                'payment_method': 'balance',
+                'note': 'order:close'
+            })
 
-        # ✅ Odoo sẽ tự động trigger:
-        #    - _compute_balance() vì total_spent changed
-        #    - _compute_end_time_expected() vì balance changed
-        #    - _compute_total_cost() vì order_line_ids changed
-        # ✅ end_time_expected sẽ được recalc → nếu <= now → _close_if_expired() sẽ đóng
+            # 2) Transaction cho SERVICE (toàn bộ tới hiện tại)
+            session._create_service_transaction_if_needed(service_cost_so_far, when_label='close-by-order')
+
+            # 3) Đóng session
+            session.with_context(skip_check=True).sudo().write({
+                'end_time': fields.Datetime.now(),
+                'state': 'closed',
+            })
+            session._finalize_close(when_label='close-by-order')
+            session.message_post(body=_("🔒 Session closed because balance reached zero after order."))
+
+        else:
+            # Không đóng, nhưng cập nhật end_time_expected theo số dư mới nhất
+            session._compute_end_time_expected()
 
         return order
 
+    # Bảo vệ: không cho sửa phá vỡ nguyên tắc số dư
     def write(self, vals):
-        """Khi cập nhật order (thay đổi số lượng, giá):
-        - Cập nhật lại transaction amount
-        - Odoo sẽ tự động trigger balance & play_time_remaining recalculation
-        """
-        # ⚠️ Lưu old line_total TRƯỚC khi write
-        old_amounts = {}
-        for rec in self:
-            old_amounts[rec.id] = rec.line_total
-        
-        res = super(CyberSaleOrderInSession, self).write(vals)
-        
-        for rec in self:
-            session = rec.session_id
-            account = session.account_id
-            if session.state != 'running':
-                continue
+        # Cho phép sửa nhẹ (ghi chú, liên kết) nhưng chặn thay đổi làm giảm line_total nếu dẫn đến âm quỹ
+        if any(k in vals for k in ('qty', 'price_unit', 'line_total')):
+            for rec in self:
+                session = rec.session_id
+                if session.state != 'running':
+                    raise UserError(_("Không thể chỉnh sửa order vì session đã đóng."))
 
-            # ✅ Nếu có thay đổi line_total, cập nhật transaction
-            if 'quantity' in vals or 'price_unit' in vals:
-                old_amount = old_amounts.get(rec.id, 0)
-                new_amount = rec.line_total
-                amount_diff = new_amount - old_amount
-                
-                if amount_diff != 0:
-                    # Tìm transaction gắn với order này (search by old amount)
-                    tx = self.env['cyber.transaction'].search([
-                        ('session_id', '=', session.id),
-                        ('account_id', '=', account.id),
-                        ('amount', '=', old_amount),
-                        ('type', '=', 'spend')
-                    ], limit=1)
-                    
-                    if tx:
-                        # Update transaction amount → triggers balance recalc
-                        tx.sudo().write({'amount': new_amount})
-                    else:
-                        # Nếu không tìm thấy transaction cũ, tạo transaction cho diff
-                        if amount_diff > 0:
-                            self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
-                                'account_id': account.id,
-                                'session_id': session.id,
-                                'amount': amount_diff,
-                                'type': 'spend',
-                                'payment_method': 'balance',
-                            })
-                
-                # ✅ Odoo sẽ tự động trigger balance & play_time_remaining
-                # ✅ Trigger session total_cost recalc (vì order_ids.line_total changed)
-                # ✅ end_time_expected sẽ được recalc tự động
+                new_qty = vals.get('qty', rec.qty)
+                new_price = vals.get('price_unit', rec.price_unit)
+                new_line_total = round(vals.get('line_total', new_qty * new_price), 2)
 
-        return res
+                # Tính lại balance_in_session_temp nếu line_total thay đổi
+                service_cost_so_far = session._service_cost_so_far()
+                other_orders_total = round(sum(session.order_ids.filtered(lambda r: r.id != rec.id).mapped('line_total')), 2)
+                acc_balance_now = session.account_id.balance or 0.0
+                balance_in_session_temp = round(acc_balance_now - service_cost_so_far - other_orders_total, 2)
+
+                if new_line_total > balance_in_session_temp:
+                    raise UserError(_("Sửa order vượt quá số tiền còn lại trong phiên. Còn: %s VND, Order mới: %s VND")
+                                    % (balance_in_session_temp, new_line_total))
+
+                # Nếu chỉnh sửa làm vừa khít số dư → đóng phiên tương tự như create
+                equal_after = abs(new_line_total - balance_in_session_temp) < 0.005
+                res = super(CyberSaleOrderInSession, self).write(vals)
+
+                if equal_after:
+                    # 1) Transaction cho ORDER phần tăng thêm (nếu có chênh lệch)
+                    delta = round(new_line_total - rec.line_total, 2)
+                    if delta > 0:
+                        self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
+                            'account_id': session.account_id.id,
+                            'session_id': session.id,
+                            'order_id': rec.id if 'order_id' in self.env['cyber.transaction']._fields else False,
+                            'amount': delta,
+                            'type': 'spend',
+                            'payment_method': 'balance',
+                            'note': 'order-edit:close'
+                        })
+
+                    # 2) Service tới hiện tại
+                    session._create_service_transaction_if_needed(service_cost_so_far, when_label='close-by-order-edit')
+
+                    # 3) Đóng
+                    session.with_context(skip_check=True).sudo().write({
+                        'end_time': fields.Datetime.now(),
+                        'state': 'closed',
+                    })
+                    session._finalize_close(when_label='close-by-order-edit')
+                    session.message_post(body=_("🔒 Session closed because balance reached zero after order edit."))
+                else:
+                    session._compute_end_time_expected()
+
+                return res
+        return super().write(vals)
 
     def unlink(self):
-        """Khi xóa order:
-        - Xóa transaction tương ứng
-        - Odoo sẽ tự động hoàn lại balance và play_time_remaining
-        """
-        # ⚠️ Lưu thông tin TRƯỚC khi xóa
-        sessions_to_update = self.mapped('session_id')
-        
         for rec in self:
-            session = rec.session_id
-            account = session.account_id
-            if session.state == 'running':
-                # ✅ Tìm và xóa transaction liên quan
-                tx = self.env['cyber.transaction'].search([
-                    ('session_id', '=', session.id),
-                    ('account_id', '=', account.id),
-                    ('amount', '=', rec.line_total),
-                    ('type', '=', 'spend')
-                ], limit=1, order='create_date desc')
-                
-                if tx:
-                    # ⚠️ Hoàn lại total_spent TRƯỚC khi xóa transaction
-                    account.sudo().write({
-                        'total_spent': max(0, account.total_spent - tx.amount),
-                    })
-                    # ✅ Odoo sẽ tự động trigger _compute_balance() và _compute_play_time_remaining()
-                    tx.sudo().unlink()
-
-        res = super(CyberSaleOrderInSession, self).unlink()
-
-        # ✅ Odoo sẽ tự động trigger _compute_total_cost() vì order_ids changed
-        return res
+            if rec.session_id and rec.session_id.state != 'running':
+                raise UserError(_("Không thể xóa order vì session đã đóng."))
+        return super().unlink()
