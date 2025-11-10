@@ -9,7 +9,7 @@ class CyberInvoice(models.Model):
 
     # ==== LIÊN KẾT ====
     customer_id = fields.Many2one(
-        'cyber.customer',
+        'res.partner',
         string='Khách hàng',
         required=True,
         ondelete='cascade'
@@ -72,11 +72,11 @@ class CyberInvoice(models.Model):
             if rec.total_cost <= 0:
                 raise ValidationError(_("Tổng chi phí phải lớn hơn 0."))
 
-    @api.onchange('session_id')
-    def _onchange_session_id(self):
-        """Tự động lấy giao dịch liên quan khi chọn session"""
-        for rec in self:
-            if rec.session_id and rec.session_id.transaction_id:
-                rec.transaction_id = rec.session_id.transaction_id
-            else:
-                rec.transaction_id = False
+    # @api.onchange('session_id')
+    # def _onchange_session_id(self):
+    #     """Tự động lấy giao dịch liên quan khi chọn session"""
+    #     for rec in self:
+    #         if rec.session_id and rec.session_id.transaction_id:
+    #             rec.transaction_id = rec.session_id.transaction_id
+    #         else:
+    #             rec.transaction_id = False
