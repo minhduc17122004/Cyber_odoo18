@@ -77,10 +77,9 @@ class CyberSession(models.Model):
     # ==========================
     def _close_session_auto(self, reason=""):
         """Đóng phiên và tự tạo hóa đơn"""
-
-            session_cost = rec.duration * rec.price_per_hour
-            orders_cost = sum(rec.order_ids.mapped('line_total'))
-            rec.total_cost = round(session_cost + orders_cost)
+        session_cost = rec.duration * rec.price_per_hour
+        orders_cost = sum(rec.order_ids.mapped('line_total'))
+        rec.total_cost = round(session_cost + orders_cost)
 
     @api.depends('account_id.play_time_remaining_seconds', 'start_time')
     def _compute_end_time_expected(self):
