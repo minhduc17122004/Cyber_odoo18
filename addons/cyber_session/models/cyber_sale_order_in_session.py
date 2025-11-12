@@ -30,9 +30,10 @@ class CyberSaleOrderInSession(models.Model):
     @api.model
     def create(self, vals):
         """Khi tạo order mới trong session:
-        - Tạo transaction chi tiêu tương ứng.
-        - Trừ tiền account.
-        - Tính lại total_cost & play_time_remaining.
+        - Kiểm tra available_balance
+        - Tạo transaction chi tiêu
+        - Trigger session recompute
+        - Auto-close nếu hết tiền
         """
         order = super(CyberSaleOrderInSession, self).create(vals)
         session = order.session_id
@@ -41,17 +42,11 @@ class CyberSaleOrderInSession(models.Model):
         if session.state != 'running':
             raise UserError(_("Không thể thêm order khi phiên đã đóng."))
 
-        # ✅ Kiểm tra đủ tiền
-        if account.balance < order.line_total:
+        # ✅ Kiểm tra available_balance >= line_total (theo Requirement 8.1)
+        if session.available_balance < order.line_total:
             raise ValidationError(_("Số dư không đủ để mua sản phẩm này."))
 
-        # ✅ Trừ tiền và ghi transaction
-        account.sudo().write({
-            'total_spent': account.total_spent + order.line_total,
-        })
-        account.sudo()._compute_balance()
-        account.sudo()._compute_play_time_remaining()
-
+        # ✅ Tạo transaction chi tiêu
         self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
             'account_id': account.id,
             'session_id': session.id,
@@ -60,7 +55,8 @@ class CyberSaleOrderInSession(models.Model):
             'payment_method': 'cash',
         })
 
-        # ✅ Cập nhật session tổng chi phí
+        # ✅ Trigger session recompute (sẽ tự động cập nhật available_balance, time_remaining, etc.)
+        session._compute_total_order()
         session._compute_total_cost()
 
         # ✅ Tự động đóng nếu hết tiền
@@ -70,31 +66,18 @@ class CyberSaleOrderInSession(models.Model):
 
     def write(self, vals):
         """Khi cập nhật order (thay đổi số lượng, giá):
-        - Cập nhật lại transaction tương ứng.
-        - Tính lại balance và giờ chơi còn lại.
+        - Trigger session recompute
+        - Auto-close nếu cần
         """
         res = super(CyberSaleOrderInSession, self).write(vals)
         for rec in self:
             session = rec.session_id
-            account = session.account_id
             if session.state != 'running':
                 continue
 
-            # ✅ Cập nhật lại transaction (nếu có thay đổi line_total)
+            # ✅ Trigger session recompute khi có thay đổi
             if 'quantity' in vals or 'price_unit' in vals:
-                # Tìm transaction gắn với session (nếu có)
-                tx = self.env['cyber.transaction'].search([
-                    ('session_id', '=', session.id),
-                    ('account_id', '=', account.id),
-                    ('amount', '=', rec.line_total),
-                    ('type', '=', 'spend')
-                ], limit=1)
-                if tx:
-                    tx.sudo().write({'amount': rec.line_total})
-
-                # ✅ Recompute balance & playtime
-                account.sudo()._compute_balance()
-                account.sudo()._compute_play_time_remaining()
+                session._compute_total_order()
                 session._compute_total_cost()
                 session._auto_close_if_out_of_balance()
 
@@ -102,32 +85,30 @@ class CyberSaleOrderInSession(models.Model):
 
     def unlink(self):
         """Khi xóa order:
-        - Hoàn lại tiền (nếu cần).
-        - Cập nhật balance và playtime.
+        - Xóa transaction liên quan
+        - Trigger session recompute
         """
+        sessions_to_update = self.mapped('session_id')
+        
         for rec in self:
             session = rec.session_id
-            account = session.account_id
             if session.state == 'running':
-                # ✅ Hoàn tiền
-                account.sudo().write({
-                    'total_spent': max(0, account.total_spent - rec.line_total),
-                })
-                account.sudo()._compute_balance()
-                account.sudo()._compute_play_time_remaining()
-
                 # ✅ Xóa transaction liên quan
                 tx = self.env['cyber.transaction'].search([
                     ('session_id', '=', session.id),
-                    ('account_id', '=', account.id),
+                    ('account_id', '=', session.account_id.id),
                     ('amount', '=', rec.line_total),
                     ('type', '=', 'spend')
-                ])
-                tx.unlink()
+                ], limit=1)
+                if tx:
+                    tx.unlink()
 
         res = super(CyberSaleOrderInSession, self).unlink()
 
-        # ✅ Cập nhật lại tổng chi phí
-        for session in self.mapped('session_id'):
-            session._compute_total_cost()
+        # ✅ Trigger session recompute sau khi xóa
+        for session in sessions_to_update:
+            if session.exists():
+                session._compute_total_order()
+                session._compute_total_cost()
+        
         return res
