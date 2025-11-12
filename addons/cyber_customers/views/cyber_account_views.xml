@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- ===== Form View ===== -->
+        <record id="cyber_account_form_view" model="ir.ui.view">
+            <field name="name">cyber.account.form.view</field>
+            <field name="model">cyber.account</field>
+            <field name="arch" type="xml">
+                <form string="Quản lý tài khoản">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="username"/>
+                                <field name="password" password="True"/>
+                                <field name="customer_id" options="{'no_create': True}"/>
+                                <field name="state"/>
+                            </group>
+                            <group>
+                                <field name="balance" readonly="1"/>
+                                <field name="play_time_total"/>
+                                <field name="play_time_remaining" readonly="1"/>
+                                <field name="total_spent" readonly="1"/>
+                                <field name="total_recharge" readonly="1"/>
+                                <field name="last_session_end" readonly="1"/>
+                                <field name="last_topup_date" readonly="1"/>
+                                <field name="last_spend_date" readonly="1"/>
+                                <field name="create_date" readonly="1"/>
+                                <field name="write_date" readonly="1"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- ===== Tree View ===== -->
+        <record id="cyber_account_tree_view" model="ir.ui.view">
+            <field name="name">cyber.account.tree.view</field>
+            <field name="model">cyber.account</field>
+            <field name="arch" type="xml">
+                <list string="Cyber Accounts" default_order="create_date desc">
+                    <field name="username"/>
+                    <field name="balance"/>
+                    <field name="play_time_total"/>
+                    <field name="play_time_remaining"/>
+                    <field name="total_spent"/>
+                    <field name="state"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- ===== Action ===== -->
+        <record id="action_cyber_account" model="ir.actions.act_window">
+            <field name="name">Quản lý tài khoản</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">cyber.account</field>
+            <field name="view_mode">list,form</field>
+        </record>
+    </data>
+</odoo>

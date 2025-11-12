@@ -8,7 +8,7 @@
     'version': '1.0',
     'depends': [
         'base',
-        'cyber_customer',
+        'cyber_customers',
         'cyber_transaction',
         'cyber_session',
     ],

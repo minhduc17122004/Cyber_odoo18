@@ -9,7 +9,7 @@ class CyberInvoice(models.Model):
 
     # ==== LIÊN KẾT ====
     customer_id = fields.Many2one(
-        'cyber.customer',
+        'res.partner',
         string='Khách hàng',
         required=True,
         ondelete='cascade'
