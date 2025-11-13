@@ -184,7 +184,23 @@ class CyberSession(models.Model):
             if should_close and reason:
                 rec.action_close_session(auto=True, reason=reason)
 
+
+            if round(rec.total_cost, 2) >= round(account.balance, 2) and account.balance > 0:
+                rec._close_session_auto(reason="Balance reached 0")
+
+    # ==========================
+    # CLOSE SESSION + AUTO INVOICE
+    # ==========================
+    def _close_session_auto(self, reason=""):
+        """Đóng phiên và tự tạo hóa đơn"""
+        session_cost = rec.duration * rec.price_per_hour
+        orders_cost = sum(rec.order_ids.mapped('line_total'))
+        rec.total_cost = round(session_cost + orders_cost)
+
+    @api.depends('account_id.play_time_remaining_seconds', 'start_time')
+
     @api.depends('start_time', 'time_remaining')
+
     def _compute_end_time_expected(self):
         """Tính thời gian kết thúc dự kiến dựa trên time_remaining"""
         for rec in self:
