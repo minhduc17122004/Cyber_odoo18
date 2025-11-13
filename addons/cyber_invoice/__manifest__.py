@@ -9,7 +9,7 @@
     'depends': [
         'base',
         'account',
-        'cyber_customer',
+        'cyber_customers',
         'cyber_transaction',
         'cyber_session',
     ],

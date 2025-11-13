@@ -10,27 +10,27 @@ class CyberInvoice(models.Model):
     # Bỏ required=True để không ép buộc form
     journal_id = fields.Many2one(required=False)
 
-    # ==== LIÊN KẾT ====
-    customer_id = fields.Many2one(
-        'res.partner',
-        string='Khách hàng',
-        required=True,
-        ondelete='cascade'
-    )
-    session_id = fields.Many2one(
-        'cyber.session',
-        string="Phiên chơi",
-        ondelete='set null'
-    )
-    transaction_id = fields.Many2one(
-        'cyber.transaction',
-        string='Giao dịch liên quan',
-        ondelete='set null'
-    )
+    # # ==== LIÊN KẾT ====
+    # customer_id = fields.Many2one(
+    #     'res.partner',
+    #     string='Khách hàng',
+    #     required=True,
+    #     ondelete='cascade'
+    # )
+    # session_id = fields.Many2one(
+    #     'cyber.session',
+    #     string="Phiên chơi",
+    #     ondelete='set null'
+    # )
+    # transaction_id = fields.Many2one(
+    #     'cyber.transaction',
+    #     string='Giao dịch liên quan',
+    #     ondelete='set null'
+    # )
 
 
     # ==== LIÊN KẾT ====  
-    customer_id = fields.Many2one('cyber.customer', string='Khách hàng', ondelete='cascade')
+    customer_id = fields.Many2one('res.partner', string='Khách hàng', ondelete='cascade')
     session_id = fields.Many2one('cyber.session', string="Phiên chơi", ondelete='set null')
     transaction_id = fields.Many2one('cyber.transaction', string='Giao dịch liên quan', ondelete='set null')
     authorized_transaction_ids = fields.Many2many(
