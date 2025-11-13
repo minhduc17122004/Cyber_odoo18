@@ -7,9 +7,8 @@
     'category': 'Cyber',
     'version': '1.0',
     'depends': [
-        'base',         
-        'cyber_account', 
-        'cyber_customer',
+        'base',          
+        'cyber_customers',
     ],
     'data': [
         'security/ir.model.access.csv',

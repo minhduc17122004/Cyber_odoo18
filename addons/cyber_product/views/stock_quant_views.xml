@@ -31,8 +31,7 @@
                             domain="[
                                 '|','|',
                                 ('supplier_good_id', '=', parent.partner_id),
-                                ('supplier_component_id', '=', parent.partner_id),
-                                ('supplier_service_id', '=', parent.partner_id)
+                                ('supplier_component_id', '=', parent.partner_id)
                             ]"/>
                         <field name="product_id" invisible="1"/>
                         <field name="location_id"/>
@@ -48,9 +47,6 @@
         </field>
     </record>
 
-    <menuitem id="menu_cyber_stock_root" name="Inventory" sequence="20"/>
-    <menuitem id="menu_cyber_stock_quant" name="Tồn kho sản phẩm" parent="menu_cyber_stock_root" sequence="1"/>
-
         <!-- ACTION TỒN KHO -->
     <record id="action_cyber_stock_quant" model="ir.actions.act_window">
         <field name="name">Tồn kho sản phẩm</field>
@@ -61,5 +57,5 @@
             (5 ,0, 0, {'view_mode': 'form', 'view_id': ref('view_cyber_stock_quant_form')})
         ]"/>
     </record>
-    <menuitem id="menu_cyber_stock_quant_action" name="Tồn kho sản phẩm" parent="menu_cyber_stock_quant" action="action_cyber_stock_quant"/>
+    <menuitem id="menu_cyber_stock_quant" name="Tồn kho sản phẩm" parent="menu_cyber_inventory_root" action="action_cyber_stock_quant" sequence="3"/>
 </odoo>
