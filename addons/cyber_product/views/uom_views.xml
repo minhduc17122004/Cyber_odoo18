@@ -3,45 +3,37 @@
     <!-- Tree view -->
     <record id="view_cyber_uom_list" model="ir.ui.view">
         <field name="name">cyber.uom.list</field>
-        <field name="model">cyber.uom</field>
+        <field name="model">uom.uom</field>
+        <field name="inherit_id" ref="uom.product_uom_tree_view"/>
         <field name="arch" type="xml">
-            <list string="Đơn vị tính">
-                <field name="name"/>
+            <xpath expr="//list" position="inside">
                 <field name="uom_type"/>
-                <field name="description"/>
-            </list>
+            </xpath>
         </field>
     </record>
 
-    <!-- Form view -->
     <record id="view_cyber_uom_form" model="ir.ui.view">
         <field name="name">cyber.uom.form</field>
-        <field name="model">cyber.uom</field>
+        <field name="model">uom.uom</field>
+        <field name="inherit_id" ref="uom.product_uom_form_view"/>
         <field name="arch" type="xml">
-            <form string="Đơn vị tính">
-                <sheet>
-                    <group>
-                        <field name="name"/>
-                        <field name="uom_type"/>
-                        <field name="description"/>
-                    </group>
-                </sheet>
-            </form>
+            <xpath expr="//form" position="inside">
+                <field name="uom_type"/>
+            </xpath>
         </field>
     </record>
 
     <!-- Action -->
     <record id="action_cyber_uom" model="ir.actions.act_window">
-        <field name="name">Đơn vị tính</field>
-        <field name="res_model">cyber.uom</field>
+        <field name="name">Đơn vị tính Cyber</field>
+        <field name="res_model">uom.uom</field>
         <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_cyber_uom_list"/>
+        <field name="views" eval="[
+            (ref('view_cyber_uom_list'), 'list'),
+            (ref('view_cyber_uom_form'), 'form')
+        ]"/>
     </record>
 
     <!-- Menu -->
-    <menuitem id="menu_cyber_uom"
-              name="Đơn vị tính"
-              parent="menu_cyber_product_sub"
-              action="action_cyber_uom"
-              sequence="5"/>
+    <menuitem id="menu_cyber_uom" name="Đơn vị tính" parent="menu_cyber_product_root" action="action_cyber_uom" sequence ="5"/>
 </odoo>

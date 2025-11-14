@@ -1,45 +1,45 @@
-from odoo import fields, models, api
-from odoo.exceptions import ValidationError
+from odoo import models, fields, api
 
-class CyberStockPicking(models.Model):
-    _inherit = "stock.picking"
+class CyberPicking(models.Model):
+    _inherit = 'stock.picking'
 
-    from odoo import models, fields, api
-
-class StockPicking(models.Model):
-    _inherit = "stock.picking"
-
-    def button_validate(self):
-        res = super().button_validate()
-
-        for picking in self:
-                    if picking.state != 'done':
-                        continue
-
-                    for move in picking.move_ids:
-                        if not move.cyber_product_id:
-                            continue
-
-                        qty = move.product_uom_qty
-                        if picking.picking_type_id.code == 'incoming':
-                            move._update_cyber_quant(qty)
-                        elif picking.picking_type_id.code == 'outgoing':
-                            move._update_cyber_quant(-qty)
-
-        return res
-
-    @api.model
-    def create(self, vals):
-        context = self.env.context
-        if context.get('default_operation_type'):
-            vals['operation_type'] = context['default_operation_type']
-        return super().create(vals)
+    is_cyber_picking = fields.Boolean(
+        string="Cyber Picking",
+        compute='_compute_is_cyber_picking',
+        store=True
+    )
     
-    @api.model
-    def default_get(self, fields_list):
-        res = super().default_get(fields_list)
-        picking_type_code = self._context.get('picking_type_code', 'incoming')
-        picking_type = self.env['stock.picking.type'].search([('code', '=', picking_type_code)], limit=1)
-        if picking_type:
-            res['picking_type_id'] = picking_type.id
-        return res
+    # Số lượng cyber moves trong picking
+    cyber_move_count = fields.Integer(
+        string="Số lượng Cyber Moves",
+        compute='_compute_cyber_move_count'
+    )
+
+    @api.depends('move_ids_without_package.is_cyber_move')
+    def _compute_is_cyber_picking(self):
+        """Tự động đánh dấu picking là cyber nếu có ít nhất 1 cyber move"""
+        for picking in self:
+            picking.is_cyber_picking = any(
+                move.is_cyber_move for move in picking.move_ids_without_package
+            )
+
+    @api.depends('move_ids_without_package.is_cyber_move')
+    def _compute_cyber_move_count(self):
+        """Đếm số lượng cyber moves"""
+        for picking in self:
+            picking.cyber_move_count = sum(
+                1 for move in picking.move_ids_without_package 
+                if move.is_cyber_move
+            )
+
+    def action_view_cyber_moves(self):
+        """Action button: xem các cyber moves"""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Cyber Moves',
+            'res_model': 'stock.move',
+            'view_mode': 'tree,form',
+            'target': 'current',
+            'domain': [('picking_id', '=', self.id), ('is_cyber_move', '=', True)],
+        }

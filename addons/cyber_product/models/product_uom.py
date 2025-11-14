@@ -1,13 +1,10 @@
 from odoo import models, fields
 
 class CyberUOM(models.Model):
-    _name = 'cyber.uom'
-    _description = 'Đơn vị tính'
+    _inherit = 'uom.uom'
 
-    name = fields.Char(string="Tên đơn vị tính", required=True)
     uom_type = fields.Selection([
-        ('service', 'Máy tính'),
         ('good', 'Hàng hóa'),
-        ('component', 'Linh kiện')
-    ], string="Loại áp dụng", required=True)
-    description = fields.Text(string="Mô tả thêm")
+        ('component', 'Linh kiện'),
+        ('service', 'Máy dịch vụ')
+    ], string="Loại đơn vị")
