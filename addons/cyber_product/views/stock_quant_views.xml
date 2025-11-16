@@ -39,6 +39,7 @@
             (ref('view_cyber_stock_quant_list'), 'list'),
             (ref('view_cyber_stock_quant_form'), 'form')
         ]"/>
+        <field name="domain">[('location_id.usage','=','internal')]</field>
     </record>
     <menuitem id="menu_cyber_stock_quant" name="Tồn kho Cyber" parent="menu_cyber_inventory_root" action="action_cyber_stock_quant" sequence="30"/>
 </odoo>

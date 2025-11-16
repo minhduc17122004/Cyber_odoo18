@@ -27,7 +27,7 @@
                 <sheet>
                     <group>
                         <field name="name"/>
-                        <field name="partner_id" string="Nhà cung cấp"/>
+                        <field name="partner_id" string="Nhà cung cấp" domain="[('is_supplier_cyber','=',True)]"/>
                         <field name="scheduled_date"/>
                         <field name="state"/>
                         <field name="is_cyber_picking"/>
@@ -119,7 +119,7 @@
                 (ref('view_cyber_stock_picking_form'), 'form')
             ]"/>
         <field name="domain">[('picking_type_id.code','=','incoming')]</field>
-        <field name="context" eval="{'default_picking_type_id': ref('stock.picking_type_in')}"/>
+        <field name="context" eval="{'default_picking_type_id': ref('stock.picking_type_in'), 'is_cyber_picking': True}"/>
     </record>
 
     <record id="action_cyber_stock_out" model="ir.actions.act_window">
@@ -130,14 +130,15 @@
             (ref('view_cyber_stock_picking_list'), 'list'),
             (ref('view_cyber_stock_picking_form'), 'form')
         ]"/>
-        <field name="domain">[('picking_type_id.code','=','outgoing')]</field>
-        <field name="context" eval="{'default_picking_type_id': ref('stock.picking_type_out')}"/>
+        <field name="domain">[('picking_type_id.code','=','outgoing'), ('partner_id.is_supplier_cyber','=',True)]</field>
+        <field name="context" eval="{'default_picking_type_id': ref('stock.picking_type_out'), 'is_cyber_picking': True}"/>
     </record>
 
     <!-- =================== MENU =================== -->
     
     <menuitem id="menu_cyber_inventory_root" 
               name="Quản lý kho"
+              parent ="menu_cyber_product_root"
               sequence="20"/>
     
     <menuitem id="menu_cyber_stock_in" 

@@ -10,13 +10,9 @@ class CyberProduct(models.Model):
     is_component = fields.Boolean(string="Là linh kiện", default=False)
     
     is_active = fields.Boolean(string="Đang hoạt động", default=True)
-    
+
+    categ_id = fields.Many2one('product.category', string='Danh mục')
     # ============ SERVICE/MACHINE FIELDS ============
-    service_category_id = fields.Many2one(
-        "product.category",
-        string="Loại máy",
-        domain=[('category_type', '=', 'service')]
-    )
     machine_status = fields.Selection([
         ('active', 'Hoạt động'),
         ('maintenance', 'Bảo trì'),
@@ -35,16 +31,6 @@ class CyberProduct(models.Model):
     ip_address = fields.Char(string="Địa chỉ IP")
     
     # ============ GOOD FIELDS ============
-    good_category_id = fields.Many2one(
-        "product.category",
-        string="Danh mục hàng hóa",
-        domain=[('category_type', '=', 'good')]
-    )
-    uom_good_id = fields.Many2one(
-        "uom.uom",
-        string="Đơn vị tính hàng hóa",
-        domain=[('uom_type', '=', 'good')]
-    )
     supplier_good_id = fields.Many2one(
         "res.partner",
         string="Nhà cung cấp hàng hóa",
@@ -66,16 +52,6 @@ class CyberProduct(models.Model):
     ], string="Trạng thái hàng hóa", compute="_compute_good_status", store=True)
     
     # ============ COMPONENT FIELDS ============
-    component_category_id = fields.Many2one(
-        "product.category",
-        string="Loại linh kiện",
-        domain=[('category_type', '=', 'component')]
-    )
-    uom_component_id = fields.Many2one(
-        "uom.uom",
-        string="Đơn vị tính linh kiện",
-        domain=[('uom_type', '=', 'component')]
-    )
     supplier_component_id = fields.Many2one(
         "res.partner",
         string="Nhà cung cấp linh kiện",
@@ -108,15 +84,21 @@ class CyberProduct(models.Model):
                 raise ValidationError("Phải chọn một loại sản phẩm (Service, Good hoặc Component).")
     
     # ============ SERVICE ONCHANGE METHODS ============
-    @api.onchange('service_category_id')
-    def _onchange_service_category(self):
-        """Tự động áp giá từ Category Service"""
+    @api.onchange('categ_id', 'is_machine')
+    def _onchange_service_price(self):
+        """Tự động gán list_price theo Category Service nếu là máy/service"""
         for rec in self:
-            if rec.service_category_id and rec.service_category_id.category_type == 'service':
-                if rec.service_category_id.price_per_hours:
-                    rec.price_per_hours = rec.service_category_id.price_per_hours
-            else:
-                rec.price_per_hours = 0.0
+            if rec.is_machine and rec.categ_id:
+                if rec.categ_id.category_type == 'service':
+                    rec.list_price = rec.categ_id.price_list
+
+    @api.constrains('list_price')
+    def _check_service_price_edit(self):
+        """Không cho phép sửa list_price nếu là dịch vụ"""
+        for rec in self:
+            if rec.is_machine:
+                if rec.categ_id and rec.list_price != rec.categ_id.price_list:
+                    rec.list_price = rec.categ_id.price_list
     
     # ============ COMPUTE METHODS ============
     @api.depends('qty_available', 'min_stock_good')
@@ -162,13 +144,6 @@ class CyberProduct(models.Model):
             vals['supplier_component_id'] = self._prepare_supplier_partner(
                 vals.get('supplier_component_id'), 'component'
             )
-        
-        # Tự động gán giá dịch vụ từ category
-        if vals.get('service_category_id'):
-            category = self.env['product.category'].browse(vals['service_category_id'])
-            if category.category_type == 'service' and category.price_per_hours:
-                vals['price_per_hours'] = category.price_per_hours
-        
         
         return super(CyberProduct, self).create(vals)
     
@@ -235,37 +210,39 @@ class CyberProduct(models.Model):
             elif rec.is_component:
                 rec.is_machine = False
                 rec.is_good = False
-    def _onchange_product_type_lock_fields(self):
+
+    @api.onchange('is_machine', 'is_good', 'is_component')
+    def _onchange_product_category_type(self):
+        if self.is_machine:
+            self.categ_id = False
+            return {'domain': {'categ_id': [('category_type', '=', 'service')]}}
+        elif self.is_good:
+            self.categ_id = False
+            return {'domain': {'categ_id': [('category_type', '=', 'good')]}}
+        elif self.is_component:
+            self.categ_id = False
+            return {'domain': {'categ_id': [('category_type', '=', 'component')]}}
+    
+    @api.onchange('list_price', 'is_machine')
+    def _onchange_list_price_machine(self):
         for rec in self:
-            if rec.is_machine:
-                rec.is_good = rec.is_component = False
-                rec.good_category_id = rec.uom_good_id = rec.supplier_good_id = False
-                rec.tax_percent = rec.expiry_date = rec.min_stock_good = 0
-                rec.good_status = False
-                rec.component_category_id = rec.uom_component_id = rec.supplier_component_id = False
-                rec.lifetime_hours = rec.min_stock_component = 0
-                rec.component_status = False
+            if rec.is_machine and rec.categ_id:
+                correct_price = rec.categ_id.price_list
+                if rec.list_price != correct_price:
+                    rec.list_price = correct_price
+                    return {
+                        'warning': {
+                            'title': "Giá máy bị thay đổi",
+                            'message': f"Giá sản phẩm máy phải bằng giá của category '{rec.categ_id.name}' ({correct_price}). Giá đã được reset.",
+                        }
+                    }
 
-            elif rec.is_good:
-                rec.is_machine = rec.is_component = False
-                rec.service_category_id = False
-                rec.machine_status = 'active'
-                rec.machine_using_status = 'offline'
-                rec.location = rec.price_per_hours = rec.usage_hours = 0
-                rec.last_maintenance = rec.next_maintenance = False
-                rec.ip_address = False
-                rec.component_category_id = rec.uom_component_id = rec.supplier_component_id = False
-                rec.lifetime_hours = rec.min_stock_component = 0
-                rec.component_status = False
-
-            elif rec.is_component:
-                rec.is_machine = rec.is_good = False
-                rec.service_category_id = False
-                rec.machine_status = 'active'
-                rec.machine_using_status = 'offline'
-                rec.location = rec.price_per_hours = rec.usage_hours = 0
-                rec.last_maintenance = rec.next_maintenance = False
-                rec.ip_address = False
-                rec.good_category_id = rec.uom_good_id = rec.supplier_good_id = False
-                rec.tax_percent = rec.expiry_date = rec.min_stock_good = 0
-                rec.good_status = False
+    @api.constrains('list_price', 'is_machine')
+    def _check_list_price_machine(self):
+        for rec in self:
+            if rec.is_machine and rec.categ_id:
+                if rec.list_price != rec.categ_id.price_list:
+                    raise ValidationError(
+                        f"Giá sản phẩm máy '{rec.name}' phải bằng giá category '{rec.categ_id.name}' ({rec.categ_id.price_list})."
+                    )
+    

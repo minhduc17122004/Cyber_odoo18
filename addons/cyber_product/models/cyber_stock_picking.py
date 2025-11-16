@@ -14,7 +14,6 @@ class CyberPicking(models.Model):
         string="Số lượng Cyber Moves",
         compute='_compute_cyber_move_count'
     )
-
     @api.depends('move_ids_without_package.is_cyber_move')
     def _compute_is_cyber_picking(self):
         """Tự động đánh dấu picking là cyber nếu có ít nhất 1 cyber move"""
@@ -28,7 +27,7 @@ class CyberPicking(models.Model):
         """Đếm số lượng cyber moves"""
         for picking in self:
             picking.cyber_move_count = sum(
-                1 for move in picking.move_ids_without_package 
+                1 for move in picking.move_ids_without_package
                 if move.is_cyber_move
             )
 
@@ -43,3 +42,10 @@ class CyberPicking(models.Model):
             'target': 'current',
             'domain': [('picking_id', '=', self.id), ('is_cyber_move', '=', True)],
         }
+
+    @api.model
+    def create(self, vals):
+        # Nếu context có flag 'is_cyber_picking', tự động set True
+        if self.env.context.get('is_cyber_picking'):
+            vals['is_cyber_picking'] = True
+        return super().create(vals)

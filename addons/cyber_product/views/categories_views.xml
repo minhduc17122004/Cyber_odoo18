@@ -8,7 +8,7 @@
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
                 <field name="category_type"/>
-                <field name="price_per_hours"/>
+                <field name="price_list"/>
             </xpath>
         </field>
     </record>
@@ -22,7 +22,7 @@
             <xpath expr="//sheet/group" position="inside">
                 <group string="Cyber Info">
                     <field name="category_type"/>
-                    <field name="price_per_hours"/>
+                    <field name="price_list"/>
                 </group>
             </xpath>
         </field>
@@ -36,5 +36,6 @@
     </record>
 
     <!-- Menu -->
-    <menuitem id="menu_cyber_category" name="Danh mục sản phẩm" parent="menu_cyber_product_root" action="action_cyber_product_category" sequence ="4"/>
+     <menuitem id="menu_cyber_productconfig" name="Cấu hình sản phẩm" parent="menu_cyber_product_root" sequence ="11"/>
+    <menuitem id="menu_cyber_category" name="Danh mục sản phẩm" parent="menu_cyber_productconfig" action="action_cyber_product_category" sequence ="1"/>
 </odoo>
