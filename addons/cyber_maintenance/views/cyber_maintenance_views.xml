@@ -1,17 +1,19 @@
 <odoo>
-    <!-- Tree view đơn giản cho maintenance.request -->
+    <!-- List view -->
     <record id="view_maintenance_request_tree_inherit_cyber" model="ir.ui.view">
         <field name="name">maintenance.request.tree.inherit.cyber</field>
         <field name="model">maintenance.request</field>
         <field name="inherit_id" ref="maintenance.hr_equipment_request_view_tree"/>
-        <!-- <field name="arch" type="xml">
-            <xpath expr="//tree" position="inside">
-                <field name="cyber_machine_id"/>
-            </xpath>
-        </field> -->
     </record>
 
-    <!-- Form view kế thừa thêm trường cyber_machine_id -->
+    <!-- Kanban view -->
+    <record id="view_maintenance_request_kanban_inherit_cyber" model="ir.ui.view">
+        <field name="name">cyber.hr.equipment.request.kanban.inherit</field>
+        <field name="model">maintenance.hr_equipment_request</field>
+        <field name="inherit_id" ref="maintenance.hr_equipment_request_view_kanban"/>
+    </record>
+    
+    <!-- Form view -->
     <record id="view_maintenance_request_form_inherit_cyber" model="ir.ui.view">
         <field name="name">maintenance.request.form.inherit.cyber</field>
         <field name="model">maintenance.request</field>
@@ -23,19 +25,31 @@
             <xpath expr="//field[@name='email_cc']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-
             <xpath expr="//field[@name='maintenance_type']" position="before">
                 <field name="cyber_machine_id"/>
+            </xpath>
+
+            <xpath expr="//page[.//field[@name='description']]" position="before">
+                <page string="Chi phí liên quan">
+                    <field name="expense_ids">
+                        <list editable="bottom">
+                            <field name="name"/>
+                            <field name="amount"/>
+                            <field name="date"/>
+                            <field name="description"/>
+                            <field name="state"/>
+                        </list>
+                    </field>
+                </page>
             </xpath>
         </field>
     </record>
 
-    <!-- Action window với view tree và form -->
     <record id="action_cyber_maintenance_requests" model="ir.actions.act_window">
         <field name="name">Yêu cầu bảo trì</field>
         <field name="res_model">maintenance.request</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_maintenance_request_tree_inherit_cyber"/>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="view_id" ref="view_maintenance_request_kanban_inherit_cyber"/>
     </record>
 
     <!-- Menu -->

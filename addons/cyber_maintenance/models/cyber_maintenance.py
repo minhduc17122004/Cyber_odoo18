@@ -5,7 +5,13 @@ class CyberMaintenanceRequest(models.Model):
 
     cyber_machine_id = fields.Many2one(
         'product.product',
-        string='Machine',
+        string='Máy',
         domain=[('is_machine', '=', True)],
         help='Máy/Thiết bị liên quan trong cyber cafe'
+    )
+
+    expense_ids = fields.One2many(
+        'cyber.expense',
+        'maintenance_id',
+        string="Chi phí liên quan"
     )

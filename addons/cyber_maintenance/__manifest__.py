@@ -11,7 +11,9 @@
     'depends': ['maintenance', 'base', 'product'],  
     'data': [
         'views/cyber_maintenance_views.xml',
-        'views/cyber_maintenance_team_views.xml', 
+        'views/cyber_maintenance_team_views.xml',
+        'views/cyber_expense_views.xml',
+        'views/cyber_expense_type_views.xml',  
         'security/ir.model.access.csv',  
     ],
     'installable': True,
