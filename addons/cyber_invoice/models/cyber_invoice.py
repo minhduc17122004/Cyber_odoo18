@@ -2,47 +2,76 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
+
 class CyberInvoice(models.Model):
     _inherit = "account.move"
+
     _description = "Cyber Invoice (Kế thừa Account Move)"
 
-
-    # Bỏ required=True để không ép buộc form
+    # Không required để tránh lỗi khi tạo thủ công
     journal_id = fields.Many2one(required=False)
 
-
-
-    # ==== LIÊN KẾT ====  
+    # Liên kết
     customer_id = fields.Many2one('res.partner', string='Khách hàng', ondelete='cascade')
     session_id = fields.Many2one('cyber.session', string="Phiên chơi", ondelete='set null')
     transaction_id = fields.Many2one('cyber.transaction', string='Giao dịch liên quan', ondelete='set null')
-    authorized_transaction_ids = fields.Many2many(
-        'account.payment', 
-        string='Authorized Transactions',
-        compute='_compute_dummy'
-    )
-    transaction_count = fields.Integer(string='Transaction Count')
 
-    # ==== THÔNG TIN RIÊNG ====  
+    # Dữ liệu
+    total_cost = fields.Float(
+        string='Tổng chi phí gốc',
+        compute="_compute_total_cost",
+        store=True,
+        digits=(12, 2)
+    )
+
     discount_percent = fields.Float(string='Giảm giá (%)', digits=(5, 2), default=0.0)
     surcharge_percent = fields.Float(string='Phụ phí (%)', digits=(5, 2), default=0.0)
     tax_percent = fields.Float(string='Thuế (%)', digits=(5, 2), default=0.0)
-    total_cost = fields.Float(string='Tổng chi phí gốc', digits=(10, 2))
+
     duration = fields.Float(string='Thời lượng (giờ)', compute='_compute_duration', store=True)
     note_cyber = fields.Text(string='Ghi chú thêm')
 
-    # ==== COMPUTE ====  
-    @api.depends('total_cost', 'discount_percent', 'surcharge_percent', 'tax_percent')
-    def _compute_total_amount(self):
-        """Ghi đè logic tính tổng tiền"""
-        for rec in self:
-            base = rec.total_cost or 0.0
-            discount = base * (rec.discount_percent or 0.0) / 100
-            surcharge = base * (rec.surcharge_percent or 0.0) / 100
-            tax = base * (rec.tax_percent or 0.0) / 100
-            rec.amount_total = base - discount + surcharge + tax
+    # Account
+    account_id = fields.Many2one("cyber.account", string="Tài khoản", ondelete="set null")
 
-    @api.depends('invoice_date', 'session_id.start_time', 'session_id.end_time')
+    # Invoice date mặc định 
+    invoice_payment_term_id = fields.Many2one(
+        "account.payment.term",
+        default=lambda self: None      # Immediate Payment
+    )
+
+    invoice_date = fields.Date(
+        default=lambda self: fields.Date.today()
+    )
+
+    # Compute: Tổng chi phí gốc
+    @api.depends("invoice_line_ids", "invoice_line_ids.quantity", "invoice_line_ids.product_id")
+    def _compute_total_cost(self):
+        for rec in self:
+            total = 0.0
+            for line in rec.invoice_line_ids:
+                qty = line.quantity or 0
+                cost = line.product_id.standard_price or 0
+                total += qty * cost
+            rec.total_cost = total
+
+    # Không cho tạo 2 invoice từ 1 session
+    @api.constrains("session_id")
+    def _check_unique_session_invoice(self):
+        for rec in self:
+            if rec.session_id:
+                existed = self.search([
+                    ("session_id", "=", rec.session_id.id),
+                    ("id", "!=", rec.id),
+                    ("move_type", "=", "out_invoice"),
+                    ("state", "!=", "cancel")
+                ], limit=1)
+
+                if existed:
+                    raise ValidationError(_("Phiên chơi này đã được tạo hóa đơn trước đó."))
+
+    # Compute duration
+    @api.depends('session_id.start_time', 'session_id.end_time')
     def _compute_duration(self):
         for rec in self:
             if rec.session_id and rec.session_id.start_time and rec.session_id.end_time:
@@ -50,43 +79,29 @@ class CyberInvoice(models.Model):
             else:
                 rec.duration = 0.0
 
-    def _compute_dummy(self):
-        for rec in self:
-            rec.authorized_transaction_ids = False
+    # Fill data khi chọn session
+    @api.onchange('session_id')
+    def _onchange_session_id(self):
+        session = self.session_id
+        if not session:
+            return
 
-    # ==== OVERRIDE CREATE ====  
-    @api.model
-    def create(self, vals):
-        """Tự gán sổ nhật ký mặc định nếu chưa có"""
-        if not vals.get("journal_id"):
-            # tìm 1 journal bất kỳ có type = 'general'
-            journal = self.env['account.journal'].search([('type', '=', 'general')], limit=1)
-            if not journal:
-                # Nếu chưa có journal nào, tạo tạm 1 cái
-                journal = self.env['account.journal'].create({
-                    'name': 'Cyber Default Journal',
-                    'code': 'CYB',
-                    'type': 'general',
-                    'company_id': self.env.company.id,
-                })
-            vals['journal_id'] = journal.id
-        return super(CyberInvoice, self).create(vals)
-    @api.model
-    def default_get(self, fields_list):
-        """Đảm bảo khi mở form lần đầu, journal_id đã có để tránh lỗi default journal not found."""
-        res = super(CyberInvoice, self).default_get(fields_list)
-        # Nếu form/flow cần journal_id và chưa có, ta ưu tiên tìm journal 'general' của company
-        if 'journal_id' in fields_list and not res.get('journal_id'):
-            company_id = self.env.company.id
-            journal = self.env['account.journal'].search(
-                [('company_id', '=', company_id), ('type', '=', 'general')], limit=1)
-            if not journal:
-                # Tạo tạm 1 journal tránh lỗi (như bạn muốn, không cần user thao tác)
-                journal = self.env['account.journal'].create({
-                    'name': 'Cyber Default Journal',
-                    'code': 'CYB',
-                    'type': 'general',
-                    'company_id': company_id,
-                })
-            res['journal_id'] = journal.id
-        return res
+        if session.customer_id:
+            self.customer_id = session.customer_id
+
+        if session.account_id:
+            self.account_id = session.account_id
+
+# Thêm payment method ở invoice line
+class AccountMoveLine(models.Model):
+    _inherit = "account.move.line"
+
+    payment_method = fields.Selection(
+        [
+            ("account", "Account"),
+            ("cash", "Cash"),
+            ("bank", "Bank"),
+        ],
+        string="Phương thức thanh toán",
+        default="cash",
+    )
