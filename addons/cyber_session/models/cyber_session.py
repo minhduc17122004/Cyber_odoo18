@@ -35,8 +35,8 @@ class CyberSession(models.Model):
     ], string='Status', default='draft', tracking=True)
 
     order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
-    transaction_id = fields.Many2one(
-    'cyber.transaction',
+    topup_id = fields.Many2one(
+    'cyber.topup',
     string='Giao dịch liên quan',
     ondelete='set null'
 )
@@ -229,7 +229,7 @@ class CyberSession(models.Model):
 
             # Tạo transaction cho dịch vụ (nếu có)
             if service_cost > 0:
-                self.env['cyber.transaction'].create({
+                self.env['cyber.topup'].create({
                     'account_id': acc.id,
                     'session_id': rec.id,
                     'type': 'spend',

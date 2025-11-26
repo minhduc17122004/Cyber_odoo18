@@ -3,9 +3,9 @@
     <data>
 
         <!-- ===== Form View ===== -->
-        <record id="cyber_transaction_form_view" model="ir.ui.view">
-            <field name="name">cyber.transaction.form.view</field>
-            <field name="model">cyber.transaction</field>
+        <record id="cyber_topup_form_view" model="ir.ui.view">
+            <field name="name">cyber.topup.form.view</field>
+            <field name="model">cyber.topup</field>
             <field name="arch" type="xml">
                 <form string="Giao dịch">
                     <sheet>
@@ -18,7 +18,6 @@
 
                         <group name="main_info">
                             <group>
-                                <field name="type" string="Loại giao dịch"/>
                                 <field name="payment_method" string="Phương thức thanh toán"/>
                             </group>
                             <group>
@@ -33,13 +32,12 @@
         </record>
 
         <!-- ===== Tree View ===== -->
-        <record id="cyber_transaction_tree_view" model="ir.ui.view">
-            <field name="name">cyber.transaction.tree.view</field>
-            <field name="model">cyber.transaction</field>
+        <record id="cyber_topup_tree_view" model="ir.ui.view">
+            <field name="name">cyber.topup.tree.view</field>
+            <field name="model">cyber.topup</field>
             <field name="arch" type="xml">
                 <list string="Danh sách giao dịch" default_order="create_date desc">
                     <field name="account_id" string="Tài khoản"/>
-                    <field name="type" string="Loại giao dịch"/>
                     <field name="amount" string="Số tiền (₫)"/>
                     <!-- ✅ Thêm bonus_amount để dễ xem tổng cộng -->
                     <field name="bonus_amount" string="Khuyến mãi (₫)"/>
@@ -50,24 +48,24 @@
         </record>
 
         <!-- ===== Action ===== -->
-        <record id="action_cyber_transaction" model="ir.actions.act_window">
+        <record id="action_cyber_topup" model="ir.actions.act_window">
             <field name="name">Giao dịch</field>
             <field name="type">ir.actions.act_window</field>
-            <field name="res_model">cyber.transaction</field>
+            <field name="res_model">cyber.topup</field>
             <field name="view_mode">list,form</field>
         </record>
 
         <!-- ===== Menu Gốc ===== -->
-        <menuitem id="menu_cyber_transaction_root"
-            name="Cyber Transaction"
+        <menuitem id="menu_cyber_topup_root"
+            name="Cyber Topup"
             sequence="10"
             groups="base.group_user"/>
 
         <!-- ===== Menu Con ===== -->
-        <menuitem id="menu_cyber_transaction"
+        <menuitem id="menu_cyber_topup"
             name="Giao dịch"
-            parent="menu_cyber_transaction_root"
-            action="action_cyber_transaction"
+            parent="menu_cyber_topup_root"
+            action="action_cyber_topup"
             sequence="20"
             groups="base.group_user"/>
 

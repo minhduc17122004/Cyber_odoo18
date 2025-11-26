@@ -47,7 +47,7 @@ class CyberSaleOrderInSession(models.Model):
             raise ValidationError(_("Số dư không đủ để mua sản phẩm này."))
 
         # ✅ Tạo transaction chi tiêu
-        self.env['cyber.transaction'].sudo().with_context(from_session=True).create({
+        self.env['cyber.topup'].sudo().with_context(from_session=True).create({
             'account_id': account.id,
             'session_id': session.id,
             'amount': order.line_total,
@@ -94,7 +94,7 @@ class CyberSaleOrderInSession(models.Model):
             session = rec.session_id
             if session.state == 'running':
                 # ✅ Xóa transaction liên quan
-                tx = self.env['cyber.transaction'].search([
+                tx = self.env['cyber.topup'].search([
                     ('session_id', '=', session.id),
                     ('account_id', '=', session.account_id.id),
                     ('amount', '=', rec.line_total),
