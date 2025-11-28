@@ -6,7 +6,7 @@
             <field name="name">cyber.account.form.view</field>
             <field name="model">cyber.account</field>
             <field name="arch" type="xml">
-                <form string="Quản lý tài khoản">
+                <form string="Tài khoản Cyber Game">
                     <sheet>
                         <group>
                             <group>
@@ -15,23 +15,44 @@
                                 <field name="customer_id" options="{'no_create': True}"/>
                                 <field name="state"/>
                             </group>
-                            <group>
-                                <field name="balance" readonly="1"/>
-                                <field name="play_time_total"/>
-                                <field name="play_time_remaining" readonly="1"/>
-                                <field name="total_spent" readonly="1"/>
-                                <field name="total_recharge" readonly="1"/>
-                                <field name="last_session_end" readonly="1"/>
-                                <field name="last_topup_date" readonly="1"/>
-                                <field name="last_spend_date" readonly="1"/>
-                                <field name="create_date" readonly="1"/>
-                                <field name="write_date" readonly="1"/>
-                            </group>
                         </group>
+                        <notebook>
+                            <!-- Tab thông tin chung -->
+                            <page string="Thông tin tài khoản">
+                                <group>
+                                    <group>
+                                        <field name="balance" readonly="1"/>
+                                        <field name="total_recharge" readonly="1"/>
+                                        <field name="total_spent" readonly="1"/>
+                                    </group>
+                                    <group>
+                                        <field name="play_time_total"/>
+                                        <field name="play_time_remaining" readonly="1"/>
+                                        <field name="play_time_remaining_seconds" readonly="1"/>
+                                    </group>
+                                </group>
+                            </page>
+
+                            <!-- Tab lịch sử -->
+                            <page string="Lịch sử">
+                                <group>
+                                    <group>
+                                        <field name="last_session_end" readonly="1"/>
+                                        <field name="last_topup_date" readonly="1"/>
+                                        <field name="last_spend_date" readonly="1"/>
+                                    </group>
+                                    <group>
+                                        <field name="create_date" readonly="1"/>
+                                        <field name="write_date" readonly="1"/>
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
                     </sheet>
                 </form>
             </field>
         </record>
+
 
         <!-- ===== Tree View ===== -->
         <record id="cyber_account_tree_view" model="ir.ui.view">

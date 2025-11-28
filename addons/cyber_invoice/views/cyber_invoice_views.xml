@@ -15,7 +15,7 @@
                     <group string="Thông tin Cyber">
                         <field name="customer_id" options="{'no_create': True}" required="1"/>
                         <field name="session_id" options="{'no_create': True}"/>
-                        <field name="transaction_id" options="{'no_create': True}"/>
+                        <field name="topup_id" options="{'no_create': True}"/>
                         <field name="total_cost"/>
                         <field name="discount_percent"/>
                         <field name="surcharge_percent"/>
@@ -37,7 +37,7 @@
                 <list string="Cyber Hóa đơn">
                     <field name="customer_id"/>
                     <field name="session_id"/>
-                    <field name="transaction_id"/>
+                    <field name="topup_id"/>
                     <field name="total_cost"/>
                     <field name="discount_percent"/>
                     <field name="surcharge_percent"/>

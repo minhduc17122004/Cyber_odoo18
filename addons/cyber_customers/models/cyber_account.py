@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
+import re
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class CyberAccount(models.Model):
@@ -35,6 +36,18 @@ class CyberAccount(models.Model):
     def _compute_balance(self):
         for account in self:
             account.balance = account.total_recharge - account.total_spent
+
+    _sql_constraints =  [
+        ('username_unique', 'unique(username)', 'Tên tài khoản đã tồn tại!') ]
+
+    @api.constrains('username')
+    def _check_username(self):
+        for record in self:
+            username = record.username or ''
+
+            # Không dấu, không ký tự đặc biệt
+            if not re.match(r'^[a-zA-Z0-9_]+$', username):
+                raise ValidationError("Tên tài khoản chứa ký tự không hợp lệ!")
 
     # @api.depends('balance')
     # def _compute_play_time_remaining(self):

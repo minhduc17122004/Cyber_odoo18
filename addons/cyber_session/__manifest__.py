@@ -5,7 +5,7 @@
     'summary': 'Quản lý phiên chơi và đơn hàng trong phiên',
     'category': 'Cyber',
     'author': 'Minh Duc',
-    'depends': ['base', 'mail', 'product', 'cyber_transaction', 'cyber_customers', 'cyber_product'],
+    'depends': ['base', 'mail', 'product', 'cyber_topup', 'cyber_customers', 'cyber_product'],
     'data': [
         'security/ir.model.access.csv',
         'views/cyber_session_views.xml',

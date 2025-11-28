@@ -32,7 +32,7 @@ class CyberInvoice(models.Model):
     # ==== LIÊN KẾT ====  
     customer_id = fields.Many2one('res.partner', string='Khách hàng', ondelete='cascade')
     session_id = fields.Many2one('cyber.session', string="Phiên chơi", ondelete='set null')
-    transaction_id = fields.Many2one('cyber.transaction', string='Giao dịch liên quan', ondelete='set null')
+    topup_id = fields.Many2one('cyber.topup', string='Giao dịch liên quan', ondelete='set null')
     authorized_transaction_ids = fields.Many2many(
         'account.payment', 
         string='Authorized Transactions',
