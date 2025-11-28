@@ -50,18 +50,17 @@
 
 
         <!-- ====================================================== -->
-        <!-- PAYMENT METHOD TRONG INVOICE LINE (Tree)               -->
+        <!-- PAYMENT METHOD TRONG INVOICE LINE (Tree trong Form)    -->
         <!-- ====================================================== -->
-        <record id="view_invoice_line_tree_inherit_payment" model="ir.ui.view">
-            <field name="name">invoice.line.tree.inherit.payment.method</field>
-            <field name="model">account.move.line</field>
-
-            <!-- Tree view invoice line của Odoo 18 -->
-            <field name="inherit_id" ref="account.view_move_line_tree"/>
-
+        <record id="view_move_form_inherit_payment_method" model="ir.ui.view">
+            <field name="name">account.move.form.inherit.payment.method</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
-                <!-- thêm cột vào cuối tree -->
-                <xpath expr="//list" position="inside">
+                <!-- Thêm field payment_method vào invoice_line_ids list -->
+                <!-- Trong Odoo 18, sử dụng /list/field (field con trực tiếp) -->
+                <!-- Thử thêm sau field quantity (field chắc chắn có trong invoice line list) -->
+                <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']" position="after">
                     <field name="payment_method" optional="show"/>
                 </xpath>
             </field>
@@ -77,7 +76,9 @@
             <field name="inherit_id" ref="account.view_move_line_form"/>
 
             <field name="arch" type="xml">
-                <xpath expr="//group" position="inside">
+                <!-- Thêm field payment_method vào form view của invoice line -->
+                <!-- Sử dụng field name (chắc chắn có trong form view) -->
+                <xpath expr="//field[@name='name']" position="after">
                     <field name="payment_method"/>
                 </xpath>
             </field>
