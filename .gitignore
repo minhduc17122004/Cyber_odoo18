@@ -43,4 +43,6 @@ odoo-db-data/
 # Warp
 WARP.md
 .warpindexingignore
+#Kiro
 
+.kiro/

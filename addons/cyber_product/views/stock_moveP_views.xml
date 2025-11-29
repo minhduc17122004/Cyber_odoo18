@@ -10,10 +10,10 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
-                <field name="picking_type_id" invisible="1"/>
+                <field name="partner_id" string="Nhà cung cấp"/>
                 <field name="scheduled_date"/>
+                <field name="is_cyber_picking" string="Cyber Picking"/>
                 <field name="state"/>
-                <field name="move_ids_without_package"/>
             </list>
         </field>
     </record>
@@ -27,29 +27,26 @@
                 <sheet>
                     <group>
                         <field name="name"/>
-                        <field name="picking_type_id" invisible = "1"/>
+                        <field name="partner_id" string="Nhà cung cấp" domain="[('is_supplier_cyber','=',True)]"/>
                         <field name="scheduled_date"/>
                         <field name="state"/>
-                        <field name="partner_id" string="Nhà cung cấp"/>
+                        <field name="is_cyber_picking"/>
+                        <field name="cyber_move_count"/>
                     </group>
                     <notebook>
                         <page string="Dòng sản phẩm">
                             <field name="move_ids_without_package">
                                 <list editable="bottom">
-                                    <!-- Thay vì chỉ có product_id, ta thêm cyber_product_id có domain động -->
                                     <field name="cyber_product_id"
                                            string="Sản phẩm Cyber"
-                                           domain="[
-                                               '|','|',
-                                               ('supplier_good_id', '=', parent.partner_id),
-                                               ('supplier_component_id', '=', parent.partner_id)
-                                           ]"/>
-                                    <field name="product_id" invisible="1" context="{'default_type': 'product'}" options="{'no_create': False}"/> <!-- Ẩn product_id gốc để vẫn tính toán liên quan -->
-                                    <field name="product_uom_qty"/>
-                                    <field name="state"/>
-                                    <field name="is_machine"/>
-                                    <field name="is_good"/>
-                                    <field name="is_component"/>
+                                           domain="['|','|',('is_machine','=',True),('is_good','=',True),('is_component','=',True)]"/>
+                                    <field name="product_id" 
+                                           string="Sản phẩm"
+                                           context="{'default_type': 'product'}"/>
+                                    <field name="product_uom_qty" string="Số lượng"/>
+                                    <field name="product_uom" string="ĐVT"/>
+                                    <field name="is_cyber_move" string="Cyber Move"/>
+                                    <field name="state" invisible="1"/>
                                 </list>
                             </field>
                         </page>
@@ -66,8 +63,10 @@
         <field name="model">stock.move</field>
         <field name="arch" type="xml">
             <list>
-                <field name="product_id" context="{'default_type': 'product'}" options="{'no_create': False}"/>
-                <field name="product_uom_qty"/>
+                <field name="cyber_product_id" string="Sản phẩm Cyber"/>
+                <field name="product_id" string="Sản phẩm"/>
+                <field name="product_uom_qty" string="Số lượng"/>
+                <field name="product_uom" string="ĐVT"/>
                 <field name="is_machine"/>
                 <field name="is_good"/>
                 <field name="is_component"/>
@@ -84,43 +83,74 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <group>
-                        <field name="product_id" context="{'default_type': 'product'}" options="{'no_create': False}"/>
-                        <field name="product_uom_qty"/>
-                        <field name="state"/>
-                        <field name="picking_id"/>
+                    <group string="Thông tin sản phẩm">
+                        <field name="cyber_product_id" 
+                               string="Sản phẩm Cyber"
+                               domain="['|','|',('is_machine','=',True),('is_good','=',True),('is_component','=',True)]"/>
+                        <field name="product_id" 
+                               string="Sản phẩm"
+                               context="{'default_type': 'product'}"/>
+                        <field name="product_uom" string="ĐVT"/>
+                        <field name="product_uom_qty" string="Số lượng"/>
                     </group>
-                    <group>
+                    <group string="Loại sản phẩm">
                         <field name="is_machine"/>
                         <field name="is_good"/>
                         <field name="is_component"/>
+                        <field name="is_cyber_move"/>
+                    </group>
+                    <group string="Thông tin chung">
+                        <field name="state"/>
+                        <field name="picking_id"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
 
-    <!-- =================== MENU =================== -->
-
-    <menuitem id="menu_cyber_inventory_root" name="Cyber Inventory" parent="menu_cyber_product_root" sequence="10"/>
-    <menuitem id="menu_cyber_stock_in" name="Phiếu nhập kho" parent="menu_cyber_inventory_root" sequence="1"/>
+    <!-- =================== ACTIONS =================== -->
+    
     <record id="action_cyber_stock_in" model="ir.actions.act_window">
         <field name="name">Phiếu nhập kho Cyber</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">list,form</field>
+        <field name="views" eval="[
+                (ref('view_cyber_stock_picking_list'), 'list'),
+                (ref('view_cyber_stock_picking_form'), 'form')
+            ]"/>
         <field name="domain">[('picking_type_id.code','=','incoming')]</field>
-        <field name="context">{'picking_type_code': 'incoming'}</field>
+        <field name="context" eval="{'default_picking_type_id': ref('stock.picking_type_in'), 'is_cyber_picking': True}"/>
     </record>
-    <menuitem id="menu_cyber_stock_in_action" name="Phiếu nhập kho" parent="menu_cyber_stock_in" action="action_cyber_stock_in"/>
 
-    <menuitem id="menu_cyber_stock_out" name="Phiếu xuất kho" parent="menu_cyber_inventory_root" sequence="2"/>
     <record id="action_cyber_stock_out" model="ir.actions.act_window">
         <field name="name">Phiếu xuất kho Cyber</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">list,form</field>
-        <field name="domain">[('picking_type_id.code','=','outgoing')]</field>
-        <field name="context">{'picking_type_code': 'outgoing'}</field>
+        <field name="views" eval="[
+            (ref('view_cyber_stock_picking_list'), 'list'),
+            (ref('view_cyber_stock_picking_form'), 'form')
+        ]"/>
+        <field name="domain">[('picking_type_id.code','=','outgoing'), ('partner_id.is_supplier_cyber','=',True)]</field>
+        <field name="context" eval="{'default_picking_type_id': ref('stock.picking_type_out'), 'is_cyber_picking': True}"/>
     </record>
-    <menuitem id="menu_cyber_stock_out_action" name="Phiếu xuất kho" parent="menu_cyber_stock_out" action="action_cyber_stock_out"/>
+
+    <!-- =================== MENU =================== -->
+    
+    <menuitem id="menu_cyber_inventory_root" 
+              name="Quản lý kho"
+              parent ="menu_cyber_product_root"
+              sequence="20"/>
+    
+    <menuitem id="menu_cyber_stock_in" 
+              name="Phiếu nhập kho" 
+              parent="menu_cyber_inventory_root" 
+              action="action_cyber_stock_in" 
+              sequence="10"/>
+    
+    <menuitem id="menu_cyber_stock_out" 
+              name="Phiếu xuất kho" 
+              parent="menu_cyber_inventory_root" 
+              action="action_cyber_stock_out" 
+              sequence="20"/>
 
 </odoo>

@@ -9,7 +9,7 @@
                      <button name="action_start_session" string="Start Session" type="object"
                              invisible="state != 'draft'" class="btn-primary"/>
                      <button name="action_close_session" string="Close Session" type="object"
-                             invisible="state != 'running'" class="btn-danger"/>
+                             invisible="state != 'running'" class="btn-primary"/>
                      <field name="state" widget="statusbar" statusbar_visible="draft,running,closed"/>
                  </header>
                  <sheet>
@@ -18,30 +18,39 @@
                              <field name="name" readonly="1"/>
                          </h1>
                      </div>
-                     <group>
-                         <group>
-                             <field name="account_id"/>
-                             <field name="product_machine_id"/>
-                             <field name="price_per_hour"/>
-                             <field name="currency_id" invisible="1"/>
-                         </group>
-                         <group string="Time Tracking">
-                             <field name="start_time"/>
-                             <field name="end_time" readonly="1"/>
-                             <field name="duration" readonly="1"/>
-                             <field name="end_time_expected" readonly="1"/>
-                             <field name="time_played" readonly="1"/>
-                             <field name="time_remaining" readonly="1"/>
-                         </group>
-                     </group>
-                     <group>
-                         <group string="Financial Summary">
-                             <field name="available_balance" readonly="1" widget="monetary"/>
-                             <field name="total_service" readonly="1" widget="monetary"/>
-                             <field name="total_order" readonly="1" widget="monetary"/>
-                             <field name="total_cost" readonly="1" widget="monetary"/>
-                         </group>
-                     </group>
+                    <group>
+                        <group>
+                            <field name="account_id"/>
+                            <field name="product_machine_id"/>
+                            <field name="price_per_hour"/>
+                            <field name="total_cost" readonly="1"/>
+                            <field name="available_balance" 
+                                   string="Số dư khả dụng trong phiên" 
+                                   readonly="1"
+                                   invisible="state != 'running'"
+                                   widget="monetary"/>
+                        </group>
+                        <group>
+                            <field name="start_time"/>
+                            <field name="end_time"/>
+                            <field name="time_played" 
+                                   string="Thời gian đã chơi (giờ)"
+                                   readonly="1"
+                                   widget="float_time"/>
+                            <field name="end_time_expected" 
+                                   string="Thời gian đóng phiên dự kiến" 
+                                   readonly="1"
+                                   widget="datetime"
+                                   invisible="state != 'running'"/>
+                            <field name="duration" readonly="1"/>
+                            <field name="time_remaining" 
+                                   string="Thời gian còn lại" 
+                                   readonly="1"
+                                   widget="float_time"
+                                   invisible="state != 'running'"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
 
                     <notebook>
                         <!-- TAB ORDERS -->
@@ -60,7 +69,7 @@
                                         <field name="quantity"/>
                                         <field name="price_unit"/>
                                         <field name="line_total" readonly="1"/>
-                                        <field name="note"/>
+                                         <field name="note"/>
                                     </group>
                                 </form>
                             </field>
@@ -81,9 +90,19 @@
                 <field name="account_id"/>
                 <field name="product_machine_id"/>
                 <field name="start_time"/>
+                <field name="time_played" 
+                       string="Đã chơi"
+                       widget="float_time"
+                       optional="show"/>
+                <field name="end_time_expected" 
+                       string="Đóng phiên dự kiến"
+                       widget="datetime"
+                       optional="show"/>
                 <field name="duration"/>
-                <field name="time_played"/>
-                <field name="available_balance" widget="monetary"/>
+                <field name="time_remaining" 
+                       string="Thời gian còn lại" 
+                       widget="float_time"
+                       optional="show"/>
                 <field name="total_cost"/>
                 <field name="state"/>
             </list>

@@ -1,56 +1,95 @@
 from odoo import models, fields, api
-from odoo.exceptions import ValidationError
 
 class CyberStockMove(models.Model):
-    _inherit = "stock.move"
+    _inherit = 'stock.move'
 
+    # Field để user chọn cyber product (editable)
     cyber_product_id = fields.Many2one(
-        'cyber.product',
+        'product.template',
         string="Sản phẩm Cyber",
-        compute='_compute_cyber_product',
+        domain="['|', '|', ('is_machine', '=', True), ('is_good', '=', True), ('is_component', '=', True)]"
+    )
+    
+    is_machine = fields.Boolean(
+        string="Là máy dịch vụ",
+        compute='_compute_product_flags',
+        store=True,
+        readonly=True
+    )
+    is_good = fields.Boolean(
+        string="Là hàng hóa",
+        compute='_compute_product_flags',
+        store=True,
+        readonly=True
+    )
+    is_component = fields.Boolean(
+        string="Là linh kiện",
+        compute='_compute_product_flags',
+        store=True,
+        readonly=True
+    )
+    
+    is_cyber_move = fields.Boolean(
+        string="Cyber Move",
+        compute='_compute_is_cyber_move',
         store=True
     )
-    is_cyber_move = fields.Boolean(string="Cyber Move", default=False)
-    cyber_quant_id = fields.Many2one('cyber.stock.quant', string='Cyber Quant')
 
-    is_machine = fields.Boolean(related='cyber_product_id.is_machine', store=True)
-    is_good = fields.Boolean(related='cyber_product_id.is_good', store=True)
-    is_component = fields.Boolean(related='cyber_product_id.is_component', store=True)
-
-    @api.depends('product_id')
-    def _compute_cyber_product(self):
+    @api.depends('cyber_product_id')
+    def _compute_product_flags(self):
+        """Compute các flag từ cyber_product_id"""
         for move in self:
-            cyber = self.env['cyber.product'].search([
-                ('product_tmpl_id', '=', move.product_id.product_tmpl_id.id)
-            ], limit=1)
-            move.cyber_product_id = cyber.id if cyber else False
+            if move.cyber_product_id:
+                move.is_machine = move.cyber_product_id.is_machine
+                move.is_good = move.cyber_product_id.is_good
+                move.is_component = move.cyber_product_id.is_component
+            else:
+                move.is_machine = False
+                move.is_good = False
+                move.is_component = False
 
-    @api.constrains('product_uom_qty', 'state')
-    def _check_quantity(self):
+    @api.depends('cyber_product_id')
+    def _compute_is_cyber_move(self):
+        """Tự động đánh dấu move là cyber move nếu có cyber_product_id"""
         for move in self:
-            if move.state == 'done' and move.picking_id.picking_type_id.code == 'outgoing':
-                quant = self.env['stock.quant'].search([
-                    ('product_id', '=', move.product_id.id)
-                ], limit=1)
-                if quant and quant.quantity < move.product_uom_qty:
-                    raise ValidationError(
-                        f"Sản phẩm {move.product_id.display_name} không đủ tồn kho để xuất!"
-                    )
+            move.is_cyber_move = bool(move.cyber_product_id)
 
-    def _update_cyber_quant(self, qty_change):
-        """Cập nhật CyberQuant sau khi move hoàn tất"""
-        for move in self:
-            if not move.cyber_product_id:
-                continue
-            quant = self.env['cyber.stock.quant'].search([
-                ('cyber_product_id', '=', move.cyber_product_id.id)
-            ], limit=1)
-            if not quant:
-                quant = self.env['cyber.stock.quant'].create({
-                    'cyber_product_id': move.cyber_product_id.id,
-                    'product_id': move.cyber_product_id.product_tmpl_id.id,
-                    'quantity': 0.0,
-                    'in_date': fields.Datetime.now(),
-                })
-            quant.quantity += qty_change
-            quant.in_date = fields.Datetime.now()
+    @api.onchange('cyber_product_id')
+    def _onchange_cyber_product_id(self):
+        """Tự động gán product_id từ cyber_product_id"""
+        if self.cyber_product_id:
+            # Lấy variant đầu tiên của product template
+            variant = self.cyber_product_id.product_variant_ids[:1]
+            if variant:
+                self.product_id = variant
+                self.name = self.cyber_product_id.name
+                
+                # Tự động gán UOM dựa trên loại sản phẩm
+                if self.cyber_product_id.is_good and self.cyber_product_id.uom_good_id:
+                    self.product_uom = self.cyber_product_id.uom_good_id
+                elif self.cyber_product_id.is_component and self.cyber_product_id.uom_component_id:
+                    self.product_uom = self.cyber_product_id.uom_component_id
+                else:
+                    # Fallback: sử dụng UOM mặc định của product
+                    self.product_uom = variant.uom_id
+            else:
+                # Nếu không có variant, cảnh báo user
+                return {
+                    'warning': {
+                        'title': 'Cảnh báo',
+                        'message': f'Sản phẩm "{self.cyber_product_id.name}" không có variant nào! Vui lòng tạo variant trước.'
+                    }
+                }
+
+    @api.model
+    def create(self, vals):
+        """Override create để xử lý cyber_product_id"""
+        if vals.get('cyber_product_id'):
+            cyber_product = self.env['product.template'].browse(vals['cyber_product_id'])
+            variant = cyber_product.product_variant_ids[:1]
+            if variant:
+                vals['product_id'] = variant.id
+                if not vals.get('name'):
+                    vals['name'] = cyber_product.name
+        
+        return super(CyberStockMove, self).create(vals)

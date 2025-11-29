@@ -1,8 +1,8 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_cyber_product_user,access.cyber.product.user,model_cyber_product,,1,1,1,1
-access_cyber_uom_user,access.cyber.uom.user,model_cyber_uom,,1,1,1,1
-access_product_category_user,access.product.category.user,model_product_category,,1,1,1,1
-access_res_partner_user,access.res.partner.user,model_res_partner,,1,1,1,1
-access_cyber_stock_move,cyber.stock.move,model_stock_move,,1,1,1,1
-access_cyber_stock_picking,cyber.stock.picking,model_stock_picking,,1,1,1,1
-access_cyber_stock_quant,Cyber Stock Quant,model_cyber_stock_quant,,1,1,1,1
+access_cyber_product,access_cyber_product,model_product_template,,1,1,1,1
+access_cyber_stock_move,access_cyber_stock_move,model_stock_move,,1,1,1,1
+access_cyber_stock_picking,access_cyber_stock_picking,model_stock_picking,,1,1,1,1
+access_cyber_stock_quant,access_cyber_stock_quant,model_stock_quant,,1,1,1,1
+access_cyber_product_category,access_cyber_product_category,model_product_category,,1,1,1,1
+access_cyber_uom,access_cyber_uom,model_uom_uom,,1,1,1,1
+access_cyber_supplier,access_cyber_supplier,model_res_partner,,1,1,1,1

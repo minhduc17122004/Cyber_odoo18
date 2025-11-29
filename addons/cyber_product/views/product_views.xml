@@ -1,230 +1,135 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- ========== SERVICE (MÁY CHƠI GAME) ========== -->
-    <record id="view_cyber_service_list" model="ir.ui.view">
-        <field name="name">cyber.service.list</field>
-        <field name="model">cyber.product</field>
+
+    <!-- =================== LIST VIEWS =================== -->
+    
+    <!-- List view chung cho tất cả loại -->
+    <record id="view_cyber_product_list" model="ir.ui.view">
+        <field name="name">cyber.product.list</field>
+        <field name="model">product.template</field>
         <field name="arch" type="xml">
-            <list string="Service (Máy chơi game)">
+            <list>
                 <field name="name"/>
-                <field name="ip_address"/>
-                <field name="price_per_hours"/>
-                <field name="service_category_id"/>
-                <field name="machine_status"/>
-                <field name="usage_hours"/>
-                <field name="is_active"/>
+                <field name="is_machine" string="Máy"/>
+                <field name="is_good" string="Hàng"/>
+                <field name="is_component" string="Linh kiện"/>
+                <field name="list_price" string="Giá"/>
+                <field name="type" invisible="1"/>
             </list>
         </field>
     </record>
 
-    <record id="view_cyber_service_form" model="ir.ui.view">
-        <field name="name">cyber.service.form</field>
-        <field name="model">cyber.product</field>
+    <record id="view_cyber_product_search" model="ir.ui.view">
+        <field name="name">cyber.product.search</field>
+        <field name="model">product.template</field>
         <field name="arch" type="xml">
-            <form string="Service Detail">
-                <sheet>
-                    <group>
-                        <field name="name"/>
-                        <field name="service_category_id" domain="[('category_type','=','service')]"/>
-                        <field name="machine_status"/>
-                        <field name="machine_using_status"/>
-                        <field name="location"/>
-                        <field name="price_per_hours" readonly="1" />
-                        <field name="price_editable" invisible="1" />
-                        <field name="standard_price"/>
-                        <field name="usage_hours"/>
-                        <field name="ip_address"/>
-                        <field name="last_maintenance"/>
-                        <field name="next_maintenance"/>
-                        <field name="is_active"/>
-                        <field name="create_at" readonly="1"/>
-                        <field name="update_at" readonly="1"/>
-                    </group>
-                </sheet>
-            </form>
+            <search>
+                <filter name="filter_machine" string="Máy" domain="[('is_machine','=',True)]"/>
+                <filter name="filter_good" string="Hàng hóa" domain="[('is_good','=',True)]"/>
+                <filter name="filter_component" string="Linh kiện" domain="[('is_component','=',True)]"/>
+            </search>
         </field>
     </record>
 
-    <!-- Tổng quan máy (Dashboard) -->
-    <!--record id="view_cyber_service_overview_form" model="ir.ui.view">
-        <field name="name">cyber.service.overview.form</field>
-        <field name="model">cyber.product</field>
-        <field name="arch" type="xml">
-            <form string="Tổng quan máy">
-                <sheet>
-                    <group string="Tổng quan máy">
-                        <field name="total_ratio" readonly="1"/>
-                        <field name="maintenance_ratio" readonly="1"/>
-                        <field name="offline_ratio" readonly="1"/>
-                        <field name="in_use_ratio" readonly="1"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </!record-->
 
-    <record id="action_cyber_service" model="ir.actions.act_window">
-        <field name="name">Service (Máy chơi game)</field>
-        <field name="res_model">cyber.product</field>
+    <!-- =================== FORM VIEWS =================== -->
+    
+    <!-- Form chung - dùng notebook pages thay vì group với attrs -->
+    <record id="view_cyber_product_form" model="ir.ui.view">
+        <field name="name">cyber.product.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="priority">16</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <!-- Chọn loại sản phẩm -->
+                <group string="Loại sản phẩm Cyber" colspan="2">
+                    <field name="is_machine" string="Máy dịch vụ"
+                        modifiers="{'readonly': [('is_good','=',True), ('is_component','=',True)]}"/>
+                    <field name="is_good" string="Hàng hóa"
+                        modifiers="{'readonly': [('is_machine','=',True), ('is_component','=',True)]}"/>
+                    <field name="is_component" string="Linh kiện"
+                        modifiers="{'readonly': [('is_machine','=',True), ('is_good','=',True)]}"/>
+                </group>
+
+                <!-- Notebook pages -->
+                <notebook>
+                    <!-- TAB SERVICE -->
+                    <page string="Service / Machine" invisible="not is_machine">
+                        <group>
+                            <field name="categ_id" 
+                                   domain="[('category_type','=','service')]"/>
+                            <field name="machine_status"/>
+                            <field name="machine_using_status"/>
+                            <field name="location"/>
+                            <field name="usage_hours"/>
+                            <field name="last_maintenance"/>
+                            <field name="next_maintenance"/>
+                            <field name="ip_address"/>
+                        </group>
+                    </page>
+
+                    <!-- TAB GOODS -->
+                    <page string="Hàng hóa" invisible="not is_good">
+                        <group>
+                            <field name="categ_id" 
+                                   domain="[('category_type','=','good')]"/>
+                            <field name="supplier_good_id"/>
+                            <field name="tax_percent"/>
+                            <field name="expiry_date"/>
+                            <field name="min_stock_good"/>
+                            <field name="good_status"/>
+                        </group>
+                    </page>
+
+                    <!-- TAB COMPONENT -->
+                    <page string="Linh kiện" invisible="not is_component">
+                        <group>
+                            <field name="categ_id" 
+                                   domain="[('category_type','=','component')]"/>
+                            <field name="supplier_component_id"/>
+                            <field name="lifetime_hours"/>
+                            <field name="min_stock_component"/>
+                            <field name="component_status"/>
+                        </group>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- =================== ACTIONS =================== -->
+    
+    <record id="action_cyber_product" model="ir.actions.act_window">
+        <field name="name">Sản phẩm Cyber</field>
+        <field name="res_model">product.template</field>
         <field name="view_mode">list,form</field>
-        <field name="view_ids" eval="[
-            (5,0,0),
-            (0,0,{'view_mode':'list','view_id': ref('view_cyber_service_list')}),
-            (0,0,{'view_mode':'form','view_id': ref('view_cyber_service_form')})
+        <field name="search_view_id" ref="view_cyber_product_search"/>
+        <field name="views" eval="[
+            (ref('view_cyber_product_list'), 'list'),
+            (ref('view_cyber_product_form'), 'form')
         ]"/>
-        <field name="domain">[('is_machine', '=', True)]</field>
-        <field name="context">{'default_is_machine': True, 'default_category_type': 'service'}</field>
-    </record>
-
-    <!-- ========== GOODS (HÀNG HÓA) ========== -->
-    <record id="view_cyber_goods_list" model="ir.ui.view">
-        <field name="name">cyber.goods.list</field>
-        <field name="model">cyber.product</field>
-        <field name="arch" type="xml">
-            <list string="Goods (Hàng hóa)">
-                <field name="name"/>
-                <field name="default_code"/>
-                <field name="good_category_id"/>
-                <field name="list_price"/>
-                <field name="standard_price"/>
-                <field name="min_stock_good"/>
-                <field name="good_status" widget="badge"
-                       decoration-success="good_status == 'available'"
-                       decoration-warning="good_status == 'running out'"
-                       decoration-danger="good_status == 'no more'"/>
-                <field name="expiry_date"/>
-                <field name="is_active"/>
-            </list>
-        </field>
-    </record>
-
-    <record id="view_cyber_goods_form" model="ir.ui.view">
-        <field name="name">cyber.goods.form</field>
-        <field name="model">cyber.product</field>
-        <field name="arch" type="xml">
-            <form string="Goods Detail">
-                <sheet>
-                    <group>
-                        <field name="name"/>
-                        <field name="good_category_id" domain="[('category_type','=','good')]"/>
-                        <field name="barcode"/>
-                        <field name="list_price"/>
-                        <field name="standard_price"/>
-                        <field name="tax_percent"/>
-                        <field name="quantity_init"/>
-                        <field name="uom_id"/>
-                        <field name="min_stock_good"/>
-                        <field name="good_status" readonly="1" widget="statusbar"
-                               statusbar_visible="available,running out,no more"
-                               options="{'clickable': false}"/>
-                        <field name="expiry_date"/>
-                        <field name="supplier_good_id"
-                            domain="[('supplier_type','=','good')]"
-                            context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'good'}"
-                            options="{'no_create': False}"/>
-                        <field name="good_status" readonly="1"/>
-                        <field name="is_active"/>
-                        <field name="create_at" readonly="1"/>
-                        <field name="update_at" readonly="1"/>
-                        <button name="action_view_stock_quants"
-                            string="Xem tồn kho"
-                            type="object"
-                            class="oe_highlight"/>
-                        <button name="action_view_moves" string="Xem lịch sử nhập/xuất" type="object" class="btn-secondary"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <record id="action_cyber_goods" model="ir.actions.act_window">
-        <field name="name">Goods (Hàng hóa)</field>
-        <field name="res_model">cyber.product</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_ids" eval="[
-            (5,0,0),
-            (0,0,{'view_mode':'list','view_id': ref('view_cyber_goods_list')}),
-            (0,0,{'view_mode':'form','view_id': ref('view_cyber_goods_form')})
+        <field name="domain" eval="[
+            '|', '|',
+            ('is_machine', '=', True),
+            ('is_good', '=', True),
+            ('is_component', '=', True)
         ]"/>
-        <field name="domain">[('is_good', '=', True)]</field>
-        <field name="context">{'default_is_good': True, 'default_category_type': 'good'}</field>
     </record>
 
-    <!-- ========== COMPONENT (LINH KIỆN) ========== -->
-    <record id="view_cyber_component_list" model="ir.ui.view">
-        <field name="name">cyber.component.list</field>
-        <field name="model">cyber.product</field>
-        <field name="arch" type="xml">
-            <list string="Component (Linh kiện)">
-                <field name="name"/>
-                <field name="default_code"/>
-                <field name="component_category_id"/>
-                <field name="min_stock_component"/>
-                <field name="component_status" widget="badge"
-                       decoration-success="component_status == 'available'"
-                       decoration-warning="component_status == 'running out'"
-                       decoration-danger="component_status == 'no more'"/>
-                <field name="list_price"/>
-                <field name="is_active"/>
-            </list>
-        </field>
-    </record>
+    <!-- =================== MENU =================== -->
+    
+    <menuitem id="menu_cyber_product_root" 
+              name="Cyber Products" 
+              sequence="10"/>
+    
+    <menuitem id="menu_cyber_product" 
+              name="Sản phẩm" 
+              parent="menu_cyber_product_root" 
+              action="action_cyber_product" 
+              sequence="1"/>
 
-    <record id="view_cyber_component_form" model="ir.ui.view">
-        <field name="name">cyber.component.form</field>
-        <field name="model">cyber.product</field>
-        <field name="arch" type="xml">
-            <form string="Component Detail">
-                <sheet>
-                    <group>
-                        <field name="name"/>
-                        <field name="component_category_id" domain="[('category_type','=','component')]"/>
-                        <field name="list_price"/>
-                        <field name="standard_price"/>
-                        <field name="quantity_init"/>
-                        <field name="uom_id"/>
-                        <field name="lifetime_hours"/>
-                        <field name="min_stock_component"/>
-                        <field name="component_status" readonly="1" widget="statusbar"
-                               statusbar_visible="available,running out,no more"
-                               options="{'clickable': false}"/>
-                        <field name="component_status" readonly="1"/>
-                        <field name="barcode"/>
-                        <field name="supplier_component_id"
-                                domain="[('supplier_type','=','component')]"
-                                context="{'default_is_supplier_cyber': True, 'default_supplier_type': 'component'}"
-                                options="{'no_create': False}"/>
-                        <field name="is_active"/>
-                        <field name="create_at" readonly="1"/>
-                        <field name="update_at" readonly="1"/>
-                        <button name="action_view_stock_quants"
-                            string="Xem tồn kho"
-                            type="object"
-                            class="oe_highlight"/>
-                        <button name="action_view_moves" string="Xem lịch sử nhập/xuất" type="object" class="btn-secondary"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <record id="action_cyber_component" model="ir.actions.act_window">
-        <field name="name">Component (Linh kiện)</field>
-        <field name="res_model">cyber.product</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_ids" eval="[
-            (5,0,0),
-            (0,0,{'view_mode':'list','view_id': ref('view_cyber_component_list')}),
-            (0,0,{'view_mode':'form','view_id': ref('view_cyber_component_form')})
-        ]"/>
-        <field name="domain">[('is_component', '=', True)]</field>
-        <field name="context">{'default_is_component': True, 'default_category_type': 'component'}</field>
-    </record>
-
-    <!-- ========== MENU ========== -->
-    <menuitem id="menu_cyber_product_root" name="Cyber Products"/>
-    <menuitem id="menu_cyber_product_sub" name="Product" parent="menu_cyber_product_root"/>
-    <menuitem id="menu_cyber_service" name="Service (Máy chơi game)" parent="menu_cyber_product_sub" action="action_cyber_service" sequence="1"/>
-    <menuitem id="menu_cyber_goods" name="Goods (Hàng hóa)" parent="menu_cyber_product_sub" action="action_cyber_goods" sequence="2"/>
-    <menuitem id="menu_cyber_component" name="Component (Linh kiện)" parent="menu_cyber_product_sub" action="action_cyber_component" sequence="3"/>
 </odoo>

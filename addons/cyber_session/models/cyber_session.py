@@ -14,12 +14,18 @@ class CyberSession(models.Model):
     # ========================
     name = fields.Char(string='Session ID', required=True, readonly=True, copy=False, default='New')
     account_id = fields.Many2one('cyber.account', string='Account', required=True, ondelete='cascade')
-    product_machine_id = fields.Many2one('product.product', string='Machine', domain=[('is_machine', '=', True)])
+    product_machine_id = fields.Many2one('product.product', string='Machine', domain=[('is_machine', '=', True)], required=True)
     start_time = fields.Datetime(string='Start Time', default=lambda self: fields.Datetime.now())
     end_time = fields.Datetime(string='End Time')
     end_time_expected = fields.Datetime(string='Expected End Time', compute='_compute_end_time_expected', store=True)
     duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True, digits=(12, 6))
-    price_per_hour = fields.Float(string='Price per Hour (VND)', required=True, digits=(16, 2))
+    price_per_hour = fields.Float(
+        string='Price per Hour (VND)',
+        related='product_machine_id.list_price',
+        store=True,
+        readonly=True,
+        digits=(16, 2)
+    )
     total_cost = fields.Float(string='Total Cost (VND)', compute='_compute_total_cost', store=True, digits=(16, 0))
     currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
     state = fields.Selection([
@@ -139,7 +145,6 @@ class CyberSession(models.Model):
         """Tổng chi phí = total_service + total_order"""
         for rec in self:
             rec.total_cost = round(rec.total_service + rec.total_order, 0)
-            rec._auto_close_if_out_of_balance()  # ⬅ Auto-check balance
 
     # ==========================
     # AUTO CLOSE WHEN OUT OF BALANCE
@@ -184,23 +189,7 @@ class CyberSession(models.Model):
             if should_close and reason:
                 rec.action_close_session(auto=True, reason=reason)
 
-
-            if round(rec.total_cost, 2) >= round(account.balance, 2) and account.balance > 0:
-                rec._close_session_auto(reason="Balance reached 0")
-
-    # ==========================
-    # CLOSE SESSION + AUTO INVOICE
-    # ==========================
-    def _close_session_auto(self, reason=""):
-        """Đóng phiên và tự tạo hóa đơn"""
-        session_cost = rec.duration * rec.price_per_hour
-        orders_cost = sum(rec.order_ids.mapped('line_total'))
-        rec.total_cost = round(session_cost + orders_cost)
-
-    @api.depends('account_id.play_time_remaining_seconds', 'start_time')
-
     @api.depends('start_time', 'time_remaining')
-
     def _compute_end_time_expected(self):
         """Tính thời gian kết thúc dự kiến dựa trên time_remaining"""
         for rec in self:
@@ -373,13 +362,17 @@ class CyberSession(models.Model):
             if not rec.account_id:
                 raise ValidationError(_("Tài khoản là bắt buộc để bắt đầu phiên"))
             
+            # Kiểm tra machine exists
+            if not rec.product_machine_id:
+                raise ValidationError(_("Máy là bắt buộc để bắt đầu phiên"))
+            
             # Kiểm tra balance > 0
             if rec.account_id.balance <= 0:
                 raise ValidationError(_("Số dư tài khoản không đủ để bắt đầu phiên"))
             
-            # Kiểm tra price_per_hour > 0
+            # Kiểm tra price_per_hour > 0 (from machine)
             if rec.price_per_hour <= 0:
-                raise ValidationError(_("Giá mỗi giờ phải lớn hơn 0"))
+                raise ValidationError(_("Giá mỗi giờ của máy phải lớn hơn 0. Vui lòng kiểm tra cấu hình sản phẩm máy."))
             
             # Set state='running', start_time=now()
             now = fields.Datetime.now()
@@ -394,6 +387,30 @@ class CyberSession(models.Model):
             rec.message_post(body=_("Session started at %s") % time_str)
         
         return True
+
+    # ========================
+    # ONCHANGE METHODS
+    # ========================
+    @api.onchange('product_machine_id')
+    def _onchange_product_machine(self):
+        """Validate machine selection and auto-fill price"""
+        if self.product_machine_id:
+            if not self.product_machine_id.is_machine:
+                return {
+                    'warning': {
+                        'title': _("Invalid Product"),
+                        'message': _("Selected product is not a machine. Please select a valid machine product.")
+                    }
+                }
+            # Price will be auto-filled via related field
+            # But we can add additional validations here
+            if self.product_machine_id.list_price <= 0:
+                return {
+                    'warning': {
+                        'title': _("Invalid Price"),
+                        'message': _("Machine price must be greater than 0. Please check the product configuration.")
+                    }
+                }
 
     # ========================
     # OVERRIDE METHODS
