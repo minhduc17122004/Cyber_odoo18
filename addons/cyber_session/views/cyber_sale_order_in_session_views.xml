@@ -5,12 +5,13 @@
         <field name="model">cyber.sale_order_in_session</field>
         <field name="arch" type="xml">
             <list editable="bottom">
-                <field name="session_id"/>
-                <field name="product_id"/>
-                <field name="quantity"/>
-                <field name="price_unit"/>
-                <field name="line_total" readonly="1"/>
-                <field name="note"/>
+                <field name="session_id" string="Phiên"/>
+                <field name="product_id" string="Sản phẩm"/>
+                <field name="quantity" string="Số lượng"/>
+                <field name="price_unit" string="Đơn giá"/>
+                <field name="line_total" readonly="1" string="Tổng tiền"/>
+                <field name="order_state" widget="badge" decoration-info="order_state == 'in_progress'" decoration-success="order_state == 'done'" decoration-danger="order_state == 'canceled'" string="Trạng thái"/>
+                <field name="note" string="Ghi chú"/>
             </list>
         </field>
     </record>
@@ -21,20 +22,53 @@
         <field name="model">cyber.sale_order_in_session</field>
         <field name="arch" type="xml">
             <form string="Order in Session">
+                <header>
+                    <field name="order_state" widget="statusbar" statusbar_visible="in_progress,done,canceled"/>
+                </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <!-- Có thể thêm smart buttons ở đây sau -->
+                    </div>
+                    
+                    <div class="oe_title">
+                        <label for="product_id" class="oe_edit_only"/>
+                        <h1>
+                            <field name="product_id" placeholder="Chọn sản phẩm..." readonly="order_state == 'canceled'"/>
+                        </h1>
+                    </div>
+
                     <group>
-                        <group>
-                            <field name="session_id"/>
-                            <field name="product_id"/>
-                            <field name="quantity"/>
+                        <group string="Thông tin đơn hàng">
+                            <field name="session_id" options="{'no_create': True}" string="Phiên"/>
+                            <field name="quantity" readonly="order_state == 'canceled'" string="Số lượng"/>
+                            <field name="price_unit" readonly="order_state == 'canceled'" widget="monetary" string="Đơn giá"/>
                         </group>
-                        <group>
-                            <field name="price_unit"/>
-                            <field name="line_total" readonly="1"/>
-                            <field name="note"/>
+                        <group string="Tổng kết">
+                            <field name="line_total" readonly="1" widget="monetary" class="oe_subtotal_footer_separator" string="Tổng tiền"/>
                         </group>
                     </group>
+
+                    <group>
+                        <field name="note" placeholder="Ghi chú đặc biệt cho order này..." string="Ghi chú"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Thông tin bổ sung" name="additional_info">
+                            <group>
+                                <group string="Liên kết">
+                                    <field name="session_id" readonly="1" string="Phiên"/>
+                                </group>
+                                <group string="Trạng thái">
+                                    <field name="order_state" widget="badge" string="Trạng thái"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
                 </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>

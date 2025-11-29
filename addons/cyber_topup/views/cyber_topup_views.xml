@@ -21,7 +21,7 @@
                                 <field name="payment_method" string="Phương thức thanh toán"/>
                             </group>
                             <group>
-                                <field name="amount" string="Số tiền nạp/chi tiêu (₫)"/>
+                                <field name="amount" string="Số tiền nạp (₫)"/>
                                 <!-- ✅ Hiển thị bonus đã được tính tự động -->
                                 <field name="bonus_amount" string="Số tiền khuyến mãi (₫)" readonly="1"/>
                             </group>

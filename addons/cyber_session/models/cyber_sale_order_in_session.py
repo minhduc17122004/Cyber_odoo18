@@ -4,6 +4,8 @@ from odoo.exceptions import UserError, ValidationError
 class CyberSaleOrderInSession(models.Model):
     _name = 'cyber.sale_order_in_session'
     _description = 'Sale Order in Session'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _order = 'id desc'
 
     session_id = fields.Many2one('cyber.session', string='Session', ondelete='cascade', required=True)
     product_id = fields.Many2one('product.product', string='Product', required=True)
@@ -11,11 +13,21 @@ class CyberSaleOrderInSession(models.Model):
     price_unit = fields.Float(string='Unit Price (VND)', digits=(16, 0))
     line_total = fields.Float(string='Line Total (VND)', compute='_compute_line_total', store=True, digits=(16, 0))
     note = fields.Char(string='Ghi chú')
+    order_state = fields.Selection([
+        ('in_progress', 'In Progress'),
+        ('done', 'Done'),
+        ('canceled', 'Canceled')
+    ], string='Order Status', default='in_progress', required=True, tracking=True)
 
-    @api.depends('quantity', 'price_unit')
+    @api.depends('quantity', 'price_unit', 'order_state')
     def _compute_line_total(self):
         for rec in self:
-            rec.line_total = rec.quantity * rec.price_unit
+            # Chỉ tính line_total khi order ở trạng thái 'done'
+            # Order in_progress hoặc canceled sẽ có line_total = 0
+            if rec.order_state == 'done':
+                rec.line_total = rec.quantity * rec.price_unit
+            else:
+                rec.line_total = 0
 
     @api.onchange('product_id')
     def _onchange_product_id(self):
@@ -29,86 +41,54 @@ class CyberSaleOrderInSession(models.Model):
     # ==================================================
     @api.model
     def create(self, vals):
-        """Khi tạo order mới trong session:
-        - Kiểm tra available_balance
-        - Tạo transaction chi tiêu
-        - Trigger session recompute
-        - Auto-close nếu hết tiền
-        """
+        """Khi tạo order mới: kiểm tra balance và trigger session recompute"""
         order = super(CyberSaleOrderInSession, self).create(vals)
         session = order.session_id
-        account = session.account_id
 
-        if session.state != 'running':
+        # Kiểm tra session phải ở trạng thái running
+        if session.session_state != 'running':
             raise UserError(_("Không thể thêm order khi phiên đã đóng."))
 
-        # ✅ Kiểm tra available_balance >= line_total (theo Requirement 8.1)
+        # Kiểm tra số dư khả dụng phải >= line_total
         if session.available_balance < order.line_total:
             raise ValidationError(_("Số dư không đủ để mua sản phẩm này."))
 
-        # ✅ Tạo transaction chi tiêu
-        self.env['cyber.topup'].sudo().with_context(from_session=True).create({
-            'account_id': account.id,
-            'session_id': session.id,
-            'amount': order.line_total,
-            'type': 'spend',
-            'payment_method': 'cash',
-        })
-
-        # ✅ Trigger session recompute (sẽ tự động cập nhật available_balance, time_remaining, etc.)
+        # Trigger session recompute để cập nhật các field computed
         session._compute_total_order()
-        session._compute_total_cost()
-
-        # ✅ Tự động đóng nếu hết tiền
         session._auto_close_if_out_of_balance()
 
         return order
 
     def write(self, vals):
-        """Khi cập nhật order (thay đổi số lượng, giá):
-        - Trigger session recompute
-        - Auto-close nếu cần
-        """
+        """Khi cập nhật order: kiểm tra canceled và trigger recompute"""
+        # Không cho phép sửa order đã hủy (trừ field order_state)
+        for rec in self:
+            if rec.order_state == 'canceled' and any(key != 'order_state' for key in vals.keys()):
+                raise UserError(_("Không thể sửa order đã hủy."))
+        
         res = super(CyberSaleOrderInSession, self).write(vals)
+        
+        # Trigger recompute khi có thay đổi quantity, price_unit, hoặc order_state
         for rec in self:
             session = rec.session_id
-            if session.state != 'running':
+            if session.session_state != 'running':
                 continue
 
-            # ✅ Trigger session recompute khi có thay đổi
-            if 'quantity' in vals or 'price_unit' in vals:
+            if 'quantity' in vals or 'price_unit' in vals or 'order_state' in vals:
                 session._compute_total_order()
-                session._compute_total_cost()
                 session._auto_close_if_out_of_balance()
 
         return res
 
     def unlink(self):
-        """Khi xóa order:
-        - Xóa transaction liên quan
-        - Trigger session recompute
-        """
+        """Khi xóa order: trigger session recompute"""
+        # Lưu lại danh sách sessions cần update trước khi xóa
         sessions_to_update = self.mapped('session_id')
-        
-        for rec in self:
-            session = rec.session_id
-            if session.state == 'running':
-                # ✅ Xóa transaction liên quan
-                tx = self.env['cyber.topup'].search([
-                    ('session_id', '=', session.id),
-                    ('account_id', '=', session.account_id.id),
-                    ('amount', '=', rec.line_total),
-                    ('type', '=', 'spend')
-                ], limit=1)
-                if tx:
-                    tx.unlink()
-
         res = super(CyberSaleOrderInSession, self).unlink()
 
-        # ✅ Trigger session recompute sau khi xóa
+        # Trigger recompute cho các sessions đã lưu
         for session in sessions_to_update:
             if session.exists():
                 session._compute_total_order()
-                session._compute_total_cost()
         
         return res

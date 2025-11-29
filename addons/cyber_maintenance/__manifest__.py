@@ -6,7 +6,7 @@
         thêm các trường và logic đặc thù cho Cyber Game.
     """,
     'author': "Toan Nguyen",
-    'category': 'Maintenance',
+    'category': 'Cyber',
     'version': '1.0',
     'depends': ['maintenance', 'base', 'product'],  
     'data': [

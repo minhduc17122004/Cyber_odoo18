@@ -21,7 +21,7 @@ class CyberTopup(models.Model):
         ondelete='set null'
     )
 
-    amount = fields.Float(string='Số tiền', digits=(10, 2), required=True)
+    amount = fields.Float(string='Số tiền nạp', digits=(10, 2), required=True)
 
     payment_method = fields.Selection([
         ('cash', 'Tiền mặt'),
@@ -38,7 +38,7 @@ class CyberTopup(models.Model):
     def _check_amount(self):
         for rec in self:
             if rec.amount <= 0:
-                raise ValidationError(_("Số tiền giao dịch phải lớn hơn 0."))
+                raise ValidationError(_("Số tiền nạp phải lớn hơn 0."))
             
     @api.model
     def create(self, vals):
