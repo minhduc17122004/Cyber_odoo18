@@ -8,7 +8,7 @@ class CyberSaleOrderInSession(models.Model):
     _order = 'id desc'
 
     session_id = fields.Many2one('cyber.session', string='Session', ondelete='cascade', required=True)
-    product_id = fields.Many2one('product.product', string='Product', required=True)
+    product_id = fields.Many2one('product.product', string='Product', required=True, domain=[('is_good', '=', True)])
     quantity = fields.Float(string='Quantity', default=1.0)
     price_unit = fields.Float(string='Unit Price (VND)', digits=(16, 0))
     line_total = fields.Float(string='Line Total (VND)', compute='_compute_line_total', store=True, digits=(16, 0))
@@ -41,21 +41,16 @@ class CyberSaleOrderInSession(models.Model):
     # ==================================================
     @api.model
     def create(self, vals):
-        """Khi tạo order mới: kiểm tra balance và trigger session recompute"""
+        """Khi tạo order mới: kiểm tra trạng thái session và trigger recompute"""
         order = super(CyberSaleOrderInSession, self).create(vals)
         session = order.session_id
 
-        # Kiểm tra session phải ở trạng thái running
-        if session.session_state != 'running':
+        # Kiểm tra session có được phép thêm order không
+        if session.session_state == 'closed':
             raise UserError(_("Không thể thêm order khi phiên đã đóng."))
-
-        # Kiểm tra số dư khả dụng phải >= line_total
-        if session.available_balance < order.line_total:
-            raise ValidationError(_("Số dư không đủ để mua sản phẩm này."))
 
         # Trigger session recompute để cập nhật các field computed
         session._compute_total_order()
-        session._auto_close_if_out_of_balance()
 
         return order
 
@@ -76,7 +71,6 @@ class CyberSaleOrderInSession(models.Model):
 
             if 'quantity' in vals or 'price_unit' in vals or 'order_state' in vals:
                 session._compute_total_order()
-                session._auto_close_if_out_of_balance()
 
         return res
 

@@ -39,14 +39,6 @@ class CyberSession(models.Model):
     # ========================
     # NEW COMPUTED FIELDS
     # ========================
-    available_balance = fields.Float(
-        string='Available Balance (VND)',
-        compute='_compute_available_balance',
-        store=True,
-        tracking=True,
-        digits=(16, 0)
-    )
-    
     time_played = fields.Float(
         string='Time Played (hours)',
         compute='_compute_time_played',
@@ -92,15 +84,6 @@ class CyberSession(models.Model):
             else:
                 rec.duration = 0.0
 
-    @api.depends('account_id.balance', 'total_sale')
-    def _compute_available_balance(self):
-        """Tính số dư khả dụng = account.balance - total_sale"""
-        for rec in self:
-            if rec.account_id:
-                rec.available_balance = round(rec.account_id.balance - rec.total_sale, 0)
-            else:
-                rec.available_balance = 0.0
-
     @api.depends('start_time', 'session_state')
     def _compute_time_played(self):
         """Tính thời gian đã chơi (giờ)"""
@@ -111,12 +94,12 @@ class CyberSession(models.Model):
             else:
                 rec.time_played = 0.0
 
-    @api.depends('available_balance', 'price_per_hour')
+    @api.depends('account_id.balance', 'price_per_hour')
     def _compute_time_remaining(self):
-        """Tính thời gian còn lại (giờ)"""
+        """Tính thời gian còn lại (giờ) - chỉ dựa trên balance của account"""
         for rec in self:
-            if rec.available_balance > 0 and rec.price_per_hour > 0:
-                rec.time_remaining = rec.available_balance / rec.price_per_hour
+            if rec.account_id and rec.account_id.balance > 0 and rec.price_per_hour > 0:
+                rec.time_remaining = rec.account_id.balance / rec.price_per_hour
             else:
                 rec.time_remaining = 0.0
 
@@ -157,8 +140,8 @@ class CyberSession(models.Model):
             should_close = False
             reason = None
             
-            # Kiểm tra điều kiện 1: Số dư khả dụng <= 0
-            if rec.available_balance <= 0:
+            # Kiểm tra điều kiện 1: Số dư account <= 0
+            if rec.account_id and rec.account_id.balance <= 0:
                 should_close = True
                 reason = 'low_balance'
             # Kiểm tra điều kiện 2: Đã quá thời gian dự kiến kết thúc
@@ -178,39 +161,6 @@ class CyberSession(models.Model):
                 rec.end_time_expected = rec.start_time + timedelta(hours=rec.time_remaining)
             else:
                 rec.end_time_expected = False
-
-    # ========================
-    # MAIN LOGIC
-    # ========================
-    def _finalize_close(self):
-        """Xử lý khi session kết thúc: cập nhật account và log warning nếu balance âm"""
-        for rec in self:
-            if not rec.account_id:
-                continue
-
-            # Tính lại duration, total_service, total_sale
-            rec._compute_duration()
-            rec._compute_total_service()
-            rec._compute_total_sale()
-
-            # Cập nhật thông tin account
-            rec.account_id.write({
-                'play_time_total': rec.account_id.play_time_total + rec.duration,
-                'last_session_end': rec.end_time
-            })
-
-            # Log warning nếu balance bị âm
-            if rec.account_id.balance < 0:
-                self.env['ir.logging'].create({
-                    'name': 'Cyber Session Warning',
-                    'type': 'server',
-                    'dbname': self.env.cr.dbname,
-                    'level': 'WARNING',
-                    'message': f'Account {rec.account_id.username} has negative balance {rec.account_id.balance} after closing session {rec.name}',
-                    'path': 'cyber.session',
-                    'line': '0',
-                    'func': '_finalize_close',
-                })
 
     # ==========================
     # CLOSE SESSION ACTION
@@ -278,8 +228,10 @@ class CyberSession(models.Model):
                     'session_state': 'closed'
                 })
             
-            # Gọi _finalize_close() để xử lý chi phí cuối cùng
-            rec._finalize_close()
+            # Tính lại các field computed cho session
+            rec._compute_duration()
+            rec._compute_total_service()
+            rec._compute_total_sale()
             
             # Post message vào chatter khác nhau cho manual vs auto
             if auto:
@@ -394,10 +346,10 @@ class CyberSession(models.Model):
         """Tìm và đóng tất cả phiên hết hạn hoặc hết tiền (batch 50 records)"""
         now = fields.Datetime.now()
         
-        # Tìm phiên có available_balance <= 0
+        # Tìm phiên có account.balance <= 0
         domain_low_balance = [
             ('session_state', '=', 'running'),
-            ('available_balance', '<=', 0)
+            ('account_id.balance', '<=', 0)
         ]
         
         # Tìm phiên có expected_end_time <= now
@@ -424,7 +376,7 @@ class CyberSession(models.Model):
             try:
                 # Xác định reason để log
                 reason = None
-                if session.available_balance <= 0:
+                if session.account_id and session.account_id.balance <= 0:
                     reason = 'low_balance'
                 elif session.end_time_expected and now >= session.end_time_expected:
                     reason = 'time_expired'

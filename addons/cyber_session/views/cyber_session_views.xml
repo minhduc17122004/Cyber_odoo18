@@ -26,11 +26,6 @@
                             <field name="total_service" readonly="1" widget="monetary" string="Tổng dịch vụ (VND)"/>
                             <field name="total_order" readonly="1" widget="monetary" string="Tổng đơn hàng (VND)"/>
                             <field name="total_sale" readonly="1" widget="monetary" string="Tổng cộng (VND)" class="oe_subtotal_footer_separator"/>
-                            <field name="available_balance" 
-                                   string="Số dư khả dụng trong phiên" 
-                                   readonly="1"
-                                   invisible="session_state != 'running'"
-                                   widget="monetary"/>
                         </group>
                         <group>
                             <field name="start_time" string="Thời gian bắt đầu" invisible="session_state == 'draft'"/>
