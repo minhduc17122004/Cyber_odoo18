@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "Cyber Transaction",
-    'summary': """Quản lý giao dịch tài khoản""",
-    'description': """Lưu trữ và quản lý các giao dịch nạp tiền, chi tiêu của tài khoản khách hàng.""",
+    'name': "Cyber Topup",
+    'summary': """Quản lý giao dịch nạp tiền tài khoản""",
+    'description': """Lưu trữ và quản lý các giao dịch nạp tiền của tài khoản khách hàng.""",
     'author': "MINH QUAN",
     'category': 'Cyber',
     'version': '1.0',
@@ -12,7 +12,7 @@
     ],
     'data': [
         'security/ir.model.access.csv',
-        'views/cyber_transaction_views.xml',
+        'views/cyber_topup_views.xml',
     ],
     'installable': True,
     'application': True,

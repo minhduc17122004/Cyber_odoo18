@@ -1,0 +1,34 @@
+<odoo>
+    <record id="view_maintenance_team_kanban_inherit_cyber" model="ir.ui.view">
+        <field name="name">maintenance.team.kanban.inherit.cyber</field>
+        <field name="model">maintenance.team</field>
+        <field name="inherit_id" ref="maintenance.maintenance_team_view_kanban"/>
+    </record>
+
+    <record id="view_maintenance_team_form_inherit_cyber" model="ir.ui.view">
+        <field name="name">maintenance.team.form.inherit.cyber</field>
+        <field name="model">maintenance.team</field>
+        <field name="inherit_id" ref="maintenance.maintenance_team_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='member_ids']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Action để mở view maintenance.team -->
+    <record id="action_maintenance_team_cyber" model="ir.actions.act_window">
+        <field name="name">Quản lý đội bảo trì</field>
+        <field name="res_model">maintenance.team</field>
+        <field name="view_mode">kanban,form</field>
+    </record>
+
+
+    <!-- Menu item để mở action trên -->
+
+    <menuitem   id="menu_cyber_maintenance_team" 
+                name="Quản lý đội bảo trì"
+                parent="menu_cyber_maintenance_root" 
+                action="action_maintenance_team_cyber" 
+                sequence="20"/>
+</odoo>
