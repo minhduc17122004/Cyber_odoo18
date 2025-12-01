@@ -12,55 +12,71 @@
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
 
-
-                <!-- ẨN field khách hàng gốc -->
+                <!-- ===== ẨN field khách hàng gốc của Odoo ===== -->
                 <xpath expr="//field[@name='partner_id']" position="attributes">
-                    <attribute name="invisible">True</attribute>
+                    <attribute name="invisible">1</attribute>
                 </xpath>
 
 
-                <!-- Nhóm Thông tin Cyber - sau invoice_date -->
+                <!-- ===== THÊM GROUP CYBER INFO SAU INVOICE_DATE ===== -->
                 <xpath expr="//sheet//group[field[@name='invoice_date']]" position="after">
-                    <group string="Thông tin Phiên Chơi" name="cyber_session_info">
-                        <!-- Session ID - Cho phép chọn, trigger onchange -->
+                    
+                    <group string="Thông tin Phiên Chơi" name="cyber_session_info" colspan="2">
+                        <!-- Session ID -->
                         <field name="session_id"
                             domain="[('session_state', '=', 'closed')]"
                             options="{'no_create': True}"/>
                        
-                        <!-- Khách hàng - Readonly, tự động fill từ session -->
-                        <field name="customer_id"
+                        <!-- Khách hàng - Hiển thị từ partner_id (readonly) -->
+                        <field name="partner_id" 
+                            string="Khách hàng"
                             readonly="True"
                             options="{'no_create': True}"/>
                        
-                        <!-- Tài khoản - Readonly, tự động fill từ session -->
+                        <!-- Tài khoản - Hiển thị và editable -->
                         <field name="account_id"
-                            readonly="True"
+                            readonly="False"
                             options="{'no_create': True}"/>
                     </group>
 
 
-                    <group string="Chi phí - Thời lượng" name="cyber_cost_info">
-                        <!-- Tổng chi phí gốc - Readonly, tự động fill -->
+                    <group string="Chi phí - Thời lượng" name="cyber_cost_info" colspan="2">
+                        <!-- Tổng chi phí gốc -->
                         <field name="total_cost" readonly="True"/>
                        
-                        <!-- Thời lượng - Readonly, computed -->
+                        <!-- Thời lượng -->
                         <field name="duration" readonly="True"/>
-                       
                     </group>
 
 
-                    <group string="Điều chỉnh Chi phí" name="cyber_adjustment">
-                        <field name="discount_percent" string="Giảm giá (%)"/>
-                        <field name="surcharge_percent" string="Phụ phí (%)"/>
-                        <field name="tax_percent" string="Thuế (%)"/>
+                    <!-- ===== ĐIỀU CHỈNH CHI PHÍ: CẬP NHẬT total_cost ===== -->
+                    <group string="Điều chỉnh Chi phí" name="cyber_adjustment" colspan="2">
+                        <field name="discount_percent" 
+                            string="Giảm giá (%)"/>
+                        
+                        <field name="surcharge_percent" 
+                            string="Phụ phí (%)"/>
+                        
+                        <field name="tax_percent" 
+                            string="Thuế (%)"/>
+                        
+                        <!-- Hiển thị tổng chi phí sau điều chỉnh -->
+                        <field name="total_cost" 
+                            readonly="True" 
+                            string="Tổng chi phí (sau điều chỉnh)"
+                            nolabel="False"/>
                     </group>
+
                 </xpath>
 
 
-                <!-- Ghi chú thêm - sau narration -->
+                <!-- ===== GCHI CHÚ THÊM ===== -->
                 <xpath expr="//field[@name='narration']" position="after">
-                    <field name="note_cyber" string="Ghi chú Cyber" placeholder="Ghi chú thêm về phiên chơi..."/>
+                    <field name="note_cyber" 
+                        string="Ghi chú Cyber" 
+                        placeholder="Ghi chú thêm về phiên chơi..."/>
                 </xpath>
+
             </field>
         </record>
 
@@ -77,7 +93,7 @@
                 <list string="Cyber Hóa đơn">
                     <field name="name"/>
                     <field name="invoice_date"/>
-                    <field name="customer_id"/>
+                    <field name="partner_id" string="Khách hàng"/>
                     <field name="session_id"/>
                     <field name="account_id"/>
                     <field name="total_cost"/>

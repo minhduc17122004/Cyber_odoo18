@@ -11,10 +11,31 @@ class CyberInvoice(models.Model):
     # Không required để tránh lỗi khi tạo thủ công
     journal_id = fields.Many2one(required=False)
 
-    # Liên kết
-    session_id = fields.Many2one('cyber.session', string="Phiên chơi", ondelete='set null')
-    account_id = fields.Many2one("cyber.account", string="Tài khoản", ondelete="set null")
-    customer_id = fields.Many2one('res.partner', string='Khách hàng', ondelete='cascade')
+    # Liên kết - QUAN TRỌNG: store=True để lưu vào database
+    session_id = fields.Many2one(
+        'cyber.session', 
+        string="Phiên chơi", 
+        ondelete='set null',
+        store=True,
+        copy=False
+    )
+    account_id = fields.Many2one(
+        "cyber.account", 
+        string="Tài khoản", 
+        ondelete="set null",
+        store=True,  # BẮT BUỘC để lưu vào DB
+        copy=False,
+        index=True
+    )
+    
+    # Field để hiển thị khách hàng (computed từ account_id.customer_id)
+    customer_display = fields.Many2one(
+        'res.partner',
+        string='Khách hàng',
+        compute='_compute_customer_display',
+        store=True,
+        readonly=True
+    )
 
     # Dữ liệu
     total_cost = fields.Float(
@@ -24,14 +45,12 @@ class CyberInvoice(models.Model):
         digits=(12, 2)
     )
 
-    discount_percent = fields.Float(string='Giảm giá (%)', digits=(5, 2), default=0.0)
-    surcharge_percent = fields.Float(string='Phụ phí (%)', digits=(5, 2), default=0.0)
-    tax_percent = fields.Float(string='Thuế (%)', digits=(5, 2), default=0.0)
+    discount_percent = fields.Float(string='Giảm giá (%)', digits=(5, 2), default=0.0, store=True)
+    surcharge_percent = fields.Float(string='Phụ phí (%)', digits=(5, 2), default=0.0, store=True)
+    tax_percent = fields.Float(string='Thuế (%)', digits=(5, 2), default=0.0, store=True)
 
     duration = fields.Float(string='Thời lượng (giờ)', compute='_compute_duration', store=True)
     note_cyber = fields.Text(string='Ghi chú thêm')
-
-    
 
     # Invoice date mặc định 
     invoice_payment_term_id = fields.Many2one(
@@ -44,15 +63,30 @@ class CyberInvoice(models.Model):
     )
 
     # Compute: Tổng chi phí gốc
-    @api.depends("invoice_line_ids", "invoice_line_ids.quantity", "invoice_line_ids.product_id")
+    @api.depends(
+        "invoice_line_ids.price_unit",
+        "invoice_line_ids.quantity",
+        "discount_percent",
+        "surcharge_percent",
+        "tax_percent",
+    )
     def _compute_total_cost(self):
+        """
+        Tính tổng dựa trên price_unit * quantity của invoice lines,
+        sau đó áp dụng discount, surcharge, tax
+        """
         for rec in self:
-            total = 0.0
+            base = 0.0
             for line in rec.invoice_line_ids:
-                qty = line.quantity or 0
-                cost = line.product_id.standard_price or 0
-                total += qty * cost
-            rec.total_cost = total-(rec.discount_percent/100)*total+(rec.surcharge_percent/100)*total+(rec.tax_percent/100)*total
+                qty = line.quantity or 0.0
+                price = line.price_unit or 0.0
+                base += qty * price
+            
+            # Áp dụng thứ tự: discount -> surcharge -> tax
+            net = base * (1 - (rec.discount_percent or 0.0) / 100.0)
+            net = net * (1 + (rec.surcharge_percent or 0.0) / 100.0)
+            net = net * (1 + (rec.tax_percent or 0.0) / 100.0)
+            rec.total_cost = float(round(net, 2))
 
     # Không cho tạo 2 invoice từ 1 session
     @api.constrains("session_id")
@@ -78,18 +112,30 @@ class CyberInvoice(models.Model):
             else:
                 rec.duration = 0.0
 
+    # Compute customer display từ account_id
+    @api.depends('account_id')
+    def _compute_customer_display(self):
+        for rec in self:
+            if rec.account_id and rec.account_id.customer_id:
+                rec.customer_display = rec.account_id.customer_id
+            else:
+                rec.customer_display = False
+
     @api.onchange('session_id')
     def _onchange_session_id(self):
         """
-        Khi chọn session, tự động điền invoice lines
+        Khi chọn session, tự động điền invoice lines và map partner_id từ account.customer_id
         """
         session = self.session_id
         if not session:
-            self.customer_id = False
+            self.partner_id = False
             self.account_id = False
             self.total_cost = 0.0
             self.duration = 0.0
             self.invoice_line_ids = [(5, 0, 0)]
+            self.discount_percent = 0.0
+            self.surcharge_percent = 0.0
+            self.tax_percent = 0.0
             return
 
         # Kiểm tra session phải đã closed
@@ -100,17 +146,27 @@ class CyberInvoice(models.Model):
                     'message': _("Phiên chơi phải ở trạng thái 'Closed' để tạo hóa đơn.")
                 }
             }
-        # Điền customer & account từ session
+
+        # Điền account từ session
         if session.account_id:
             self.account_id = session.account_id
-            self.customer_id = session.account_id.customer_id or False
+            # **QUAN TRỌNG**: Map account.customer_id -> partner_id (Odoo native field)
+            if session.account_id.customer_id:
+                self.partner_id = session.account_id.customer_id
+            else:
+                self.partner_id = False
         else:
             self.account_id = False
-            self.customer_id = False
+            self.partner_id = False
 
         # Điền tổng chi phí và duration
         self.total_cost = session.total_sale or 0.0
         self.duration = session.duration or 0.0
+
+        # Reset adjustment fields
+        self.discount_percent = 0.0
+        self.surcharge_percent = 0.0
+        self.tax_percent = 0.0
 
         # Tạo invoice lines
         invoice_lines = []
@@ -137,8 +193,86 @@ class CyberInvoice(models.Model):
                 }))
 
         # Gán invoice lines
-        self.invoice_line_ids = [(5, 0, 0)]
-        self.invoice_line_ids = invoice_lines
+        self.invoice_line_ids = [(5, 0, 0)] + invoice_lines
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """
+        Override create để đảm bảo partner_id được set từ account_id.customer_id
+        """
+        for vals in vals_list:
+            # Nếu có account_id nhưng chưa có partner_id, map từ account
+            if vals.get('account_id') and not vals.get('partner_id'):
+                try:
+                    account = self.env['cyber.account'].browse(vals['account_id'])
+                    if account.customer_id:
+                        vals['partner_id'] = account.customer_id.id
+                    else:
+                        raise ValidationError(
+                            _("Account '%s' không có customer liên kết. "
+                              "Vui lòng thêm customer cho account này.") 
+                            % account.name
+                        )
+                except Exception as e:
+                    raise ValidationError(_("Lỗi map partner từ account: %s") % str(e))
+            
+            # Kiểm tra partner_id là bắt buộc
+            if not vals.get('partner_id'):
+                raise ValidationError(
+                    _("Khách hàng (Customer) là bắt buộc. "
+                      "Vui lòng chọn session có account với customer.")
+                )
+        
+        return super(CyberInvoice, self).create(vals_list)
+
+    def write(self, vals):
+        """
+        Override write để map partner_id từ account_id khi cần
+        và đảm bảo account_id được lưu khi confirm hóa đơn
+        """
+        # Nếu user update account_id mà không gửi partner_id, map nó
+        if 'account_id' in vals and vals.get('account_id') and 'partner_id' not in vals:
+            try:
+                account = self.env['cyber.account'].browse(vals['account_id'])
+                if account.customer_id:
+                    vals = dict(vals)
+                    vals['partner_id'] = account.customer_id.id
+                else:
+                    raise ValidationError(
+                        _("Account '%s' không có customer liên kết.") 
+                        % account.name
+                    )
+            except Exception as e:
+                raise ValidationError(_("Lỗi map partner từ account: %s") % str(e))
+        
+        return super(CyberInvoice, self).write(vals)
+
+    def action_post(self):
+        """
+        Override action_post để force lưu account_id, partner_id, session_id
+        trước khi posted (Odoo 17+ tự động xóa các field không required)
+        """
+        for rec in self:
+            if rec.account_id or rec.partner_id or rec.session_id:
+                rec.sudo().write({
+                    'account_id': rec.account_id.id if rec.account_id else False,
+                    'partner_id': rec.partner_id.id if rec.partner_id else False,
+                    'session_id': rec.session_id.id if rec.session_id else False,
+                    'duration': rec.duration,
+                    'total_cost': rec.total_cost,
+                    'discount_percent': rec.discount_percent,
+                    'surcharge_percent': rec.surcharge_percent,
+                    'tax_percent': rec.tax_percent,
+                })
+        
+        return super(CyberInvoice, self).action_post()
+
+    def action_draft(self):
+        """
+        Override action_draft để reset về draft state
+        """
+        return super(CyberInvoice, self).action_draft()
+
     
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
@@ -151,4 +285,5 @@ class AccountMoveLine(models.Model):
         ],
         string="Phương thức thanh toán",
         default="cash",
+        store=True
     )
