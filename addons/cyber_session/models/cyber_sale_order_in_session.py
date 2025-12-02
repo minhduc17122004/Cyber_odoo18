@@ -74,6 +74,82 @@ class CyberSaleOrderInSession(models.Model):
 
         return res
 
+    def _create_stock_move_for_order(self):
+        """
+        Tự động tạo phiếu xuất kho (stock.move) khi order được đánh dấu là 'done'
+        Để cập nhật lại tồn kho (stock.quant)
+        """
+        self.ensure_one()
+        
+        # Kiểm tra product có phải là good không
+        if not self.product_id or not self.product_id.is_good:
+            return
+        
+        # Kiểm tra xem đã tạo stock move cho order này chưa (tránh tạo trùng lặp)
+        existing_move = self.env['stock.move'].search([
+            ('origin', '=', f'cyber.sale_order_in_session,{self.id}')
+        ], limit=1)
+        
+        if existing_move:
+            return
+        
+        # Lấy warehouse mặc định
+        warehouse = self.env['stock.warehouse'].search([], limit=1)
+        if not warehouse:
+            raise UserError(_("Không tìm thấy kho. Vui lòng thiết lập kho trước."))
+        
+        # Lấy picking type cho phiếu xuất (outgoing)
+        picking_type = warehouse.out_type_id
+        if not picking_type:
+            raise UserError(_("Không tìm thấy kiểu phiếu xuất. Vui lòng thiết lập trong kho."))
+        
+        try:
+            # Tạo phiếu xuất kho (picking)
+            picking_vals = {
+                'picking_type_id': picking_type.id,
+                'partner_id': self.session_id.partner_id.id if self.session_id.partner_id else False,
+                'location_id': warehouse.lot_stock_id.id,
+                'location_dest_id': picking_type.default_location_dest_id.id or warehouse.lot_stock_id.id,
+                'origin': f'cyber.sale_order_in_session,{self.id}',
+            }
+            picking = self.env['stock.picking'].create(picking_vals)
+            
+            # Tạo stock move trong picking
+            move_vals = {
+                'picking_id': picking.id,
+                'product_id': self.product_id.id,
+                'name': self.product_id.name,
+                'quantity_done': self.quantity,
+                'product_uom': self.product_id.uom_id.id,
+                'location_id': warehouse.lot_stock_id.id,
+                'location_dest_id': picking_type.default_location_dest_id.id or warehouse.lot_stock_id.id,
+                'origin': f'cyber.sale_order_in_session,{self.id}',
+            }
+            
+            move = self.env['stock.move'].create(move_vals)
+            
+            # Tự động confirm phiếu xuất
+            picking.action_confirm()
+            
+            # Tự động đánh dấu tất cả dòng là 'done'
+            for line in picking.move_ids:
+                line.quantity_done = line.product_qty
+            
+            # Tự động validate phiếu xuất
+            picking.button_validate()
+            
+            # Log thông tin
+            self.session_id.message_post(
+                body=_("Tự động tạo phiếu xuất kho cho order: %s x %s") % (
+                    self.product_id.name, self.quantity
+                )
+            )
+            
+        except Exception as e:
+            raise UserError(_(
+                "Lỗi khi tạo phiếu xuất kho tự động:\n%s"
+            ) % str(e))
+
     def unlink(self):
         """Khi xóa order: trigger session recompute"""
         # Lưu lại danh sách sessions cần update trước khi xóa

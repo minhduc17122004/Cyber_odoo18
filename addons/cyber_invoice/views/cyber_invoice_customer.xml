@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- MENU KHÁCH HÀNG -->
+    <menuitem id="menu_cyber_customer_root"
+              name="Khách hàng"
+              parent="menu_cyber_invoice_root"
+              sequence="10"/>
+
+    <!-- LIST VIEW -->
+    <record id="view_cyber_customer_list" model="ir.ui.view">
+        <field name="name">cyber.customer.list</field>
+        <field name="model">account.move</field>
+        <field name="arch" type="xml">
+            <list string="Hóa đơn khách hàng">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="invoice_date"/>
+                <field name="amount_total"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- FORM VIEW -->
+    <record id="view_cyber_customer_form" model="ir.ui.view">
+        <field name="name">cyber.customer.form</field>
+        <field name="model">account.move</field>
+        <field name="arch" type="xml">
+            <form string="Hóa đơn khách hàng">
+                <sheet>
+                    <group>
+                        <field name="partner_id"/>
+                        <field name="invoice_date"/>
+                        <field name="amount_total"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ACTIONS -->
+    <!-- Action Hóa đơn -->
+    <record id="action_cyber_customer_invoice" model="ir.actions.act_window">
+        <field name="name">Hóa đơn</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('move_type', '=', 'out_invoice')]</field>
+        <field name="context">{'default_move_type': 'out_invoice', 'default_journal_id': False}</field>
+    </record>
+
+    <!-- Action Giấy báo có (Credit Note) -->
+    <record id="action_cyber_customer_credit_note" model="ir.actions.act_window">
+        <field name="name">Giấy báo có</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('move_type', '=', 'out_refund')]</field>
+        <field name="context">{'default_move_type': 'out_refund', 'default_journal_id': False}</field>
+    </record>
+
+    <!-- Action Thanh toán (Payment) -->
+    <record id="action_cyber_customer_payment" model="ir.actions.act_window">
+        <field name="name">Thanh toán</field>
+        <field name="res_model">account.payment</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('payment_type', '=', 'inbound'), ('partner_type', '=', 'customer')]</field>
+        <field name="context">{'default_payment_type': 'inbound', 'default_partner_type': 'customer'}</field>
+    </record>
+
+    <!-- MENU ITEMS -->
+    <menuitem id="menu_cyber_customer_invoice"
+              parent="menu_cyber_customer_root"
+              name="Hóa đơn"
+              action="action_cyber_customer_invoice"
+              sequence="1"/>
+
+    <menuitem id="menu_cyber_customer_credit_note"
+              parent="menu_cyber_customer_root"
+              name="Giấy báo có"
+              action="action_cyber_customer_credit_note"
+              sequence="2"/>
+
+    <menuitem id="menu_cyber_customer_payment"
+              parent="menu_cyber_customer_root"
+              name="Thanh toán"
+              action="action_cyber_customer_payment"
+              sequence="3"/>
+</odoo>
