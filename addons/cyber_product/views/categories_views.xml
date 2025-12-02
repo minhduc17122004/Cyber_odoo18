@@ -22,7 +22,8 @@
             <xpath expr="//sheet/group" position="inside">
                 <group string="Cyber Info">
                     <field name="category_type"/>
-                    <field name="price_list"/>
+                    <field name="price_list" 
+                           invisible="category_type != 'service'"/>
                 </group>
             </xpath>
         </field>
