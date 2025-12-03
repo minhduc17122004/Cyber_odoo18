@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- ====================================================== -->
-    <!-- NOTE: NỘI DUNG NÀY ĐƯỢC CHUYỂN TỪ cyber_invoice_views.xml -->
-    <!-- Đây là file root chính chứa các view và menu chính -->
+    
+    <!--  root chính -->
     <!-- ====================================================== -->
 
     <!-- ====================================================== -->
@@ -137,16 +136,14 @@
               sequence="10"
               groups="base.group_user"/>
 
-    <!-- NOTE: Đã xóa menu "Hóa đơn" (menu_cyber_invoice) vì thừa, chỉ giữ lại action để có thể dùng sau này nếu cần -->
+    
 
     <!-- ====================================================== -->
-    <!-- END: NỘI DUNG CHUYỂN TỪ cyber_invoice_views.xml        -->
+    <!--end root       -->
     <!-- ====================================================== -->
 
 
-    <!-- ====================================================== -->
-    <!-- MENU KHÁCH HÀNG (GIỮ NGUYÊN)                          -->
-    <!-- ====================================================== -->
+    
     <!-- MENU KHÁCH HÀNG -->
     <menuitem id="menu_cyber_customer_root"
               name="Khách hàng"
