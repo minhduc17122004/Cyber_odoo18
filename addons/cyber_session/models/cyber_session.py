@@ -232,6 +232,9 @@ class CyberSession(models.Model):
             rec._compute_duration()
             rec._compute_total_service()
             rec._compute_total_sale()
+
+            # Tính last_session_end
+            rec.account_id.update_last_dates()
             
             # Post message vào chatter khác nhau cho manual vs auto
             if auto:

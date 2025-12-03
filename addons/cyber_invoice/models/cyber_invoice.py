@@ -248,10 +248,7 @@ class CyberInvoice(models.Model):
         return super(CyberInvoice, self).write(vals)
 
     def action_post(self):
-        """
-        Override action_post để force lưu account_id, partner_id, session_id
-        trước khi posted (Odoo 17+ tự động xóa các field không required)
-        """
+        # Force giữ field custom trước khi post
         for rec in self:
             if rec.account_id or rec.partner_id or rec.session_id:
                 rec.sudo().write({
@@ -264,8 +261,33 @@ class CyberInvoice(models.Model):
                     'surcharge_percent': rec.surcharge_percent,
                     'tax_percent': rec.tax_percent,
                 })
-        
-        return super(CyberInvoice, self).action_post()
+
+        # Post invoice
+        res = super(CyberInvoice, self).action_post()
+
+        for rec in self:
+            if rec.move_type != "out_invoice":
+                continue
+
+            account_spent = 0.0
+
+            for line in rec.invoice_line_ids:
+                # Cộng cho account
+                if line.payment_method == "account":
+                    account_spent += line.price_subtotal
+                if account_spent > 0:
+                    rec.account_id.total_spent += account_spent
+
+            # Cộng cho customer
+            if rec.partner_id:
+                rec.partner_id.total_spent += rec.amount_total
+            
+            # Tính last_spend_date
+                rec.account_id.update_last_dates()
+                
+        return res
+
+
 
     def action_draft(self):
         """
