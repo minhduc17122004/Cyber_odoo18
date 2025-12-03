@@ -8,7 +8,7 @@
     'author': "Toan Nguyen",
     'category': 'Cyber',
     'version': '1.0',
-    'depends': ['maintenance', 'base', 'product'],  
+    'depends': ['product','maintenance', 'base'],  
     'data': [
         'views/cyber_maintenance_views.xml',
         'views/cyber_maintenance_team_views.xml',

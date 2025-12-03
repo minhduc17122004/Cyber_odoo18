@@ -6,7 +6,6 @@ from odoo.exceptions import UserError, ValidationError
 class CyberSession(models.Model):
     _name = 'cyber.session'
     _description = 'Cyber Game Session'
-    _inherit = ['mail.thread']
     _order = 'name desc'
 
     # ========================
@@ -44,19 +43,10 @@ class CyberSession(models.Model):
     # ========================
     # NEW COMPUTED FIELDS
     # ========================
-    time_played = fields.Float(
-        string='Time Played (hours)',
-        compute='_compute_time_played',
-        store=True,
-        tracking=True,
-        digits=(12, 6)
-    )
-    
     time_remaining = fields.Float(
         string='Time Remaining (hours)',
         compute='_compute_time_remaining',
         store=True,
-        tracking=True,
         digits=(12, 6)
     )
     
@@ -64,7 +54,6 @@ class CyberSession(models.Model):
         string='Total Service Cost (VND)',
         compute='_compute_total_service',
         store=True,
-        tracking=True,
         digits=(16, 0)
     )
     
@@ -72,8 +61,13 @@ class CyberSession(models.Model):
         string='Total Order Cost (VND)',
         compute='_compute_total_order',
         store=True,
-        tracking=True,
         digits=(16, 0)
+    )
+    
+    has_incomplete_orders = fields.Boolean(
+        string='Has Incomplete Orders',
+        compute='_compute_has_incomplete_orders',
+        store=True
     )
 
     # ========================
@@ -98,16 +92,6 @@ class CyberSession(models.Model):
             else:
                 rec.duration = 0.0
 
-    @api.depends('start_time', 'session_state')
-    def _compute_time_played(self):
-        """Tính thời gian đã chơi (giờ)"""
-        for rec in self:
-            if rec.session_state == 'running' and rec.start_time:
-                delta = fields.Datetime.now() - rec.start_time
-                rec.time_played = delta.total_seconds() / 3600
-            else:
-                rec.time_played = 0.0
-
     @api.depends('account_id.balance', 'price_per_hour')
     def _compute_time_remaining(self):
         """Tính thời gian còn lại (giờ) - chỉ dựa trên balance của account"""
@@ -130,9 +114,21 @@ class CyberSession(models.Model):
     def _compute_total_order(self):
         """Tính tổng chi phí đơn hàng - chỉ tính các order đã hoàn thành"""
         for rec in self:
+            # Lọc chỉ lấy các order có order_state = 'done'
             done_orders = rec.order_ids.filtered(lambda o: o.order_state == 'done')
             rec.total_order = round(sum(done_orders.mapped('line_total')), 0)
 
+    @api.depends('order_ids.order_state', 'session_state')
+    def _compute_has_incomplete_orders(self):
+        """Kiểm tra xem phiên có order chưa hoàn thành không"""
+        for rec in self:
+            if rec.session_state == 'closed':
+                # Chỉ check khi phiên đã đóng
+                in_progress_orders = rec.order_ids.filtered(lambda o: o.order_state == 'in_progress')
+                rec.has_incomplete_orders = len(in_progress_orders) > 0
+            else:
+                rec.has_incomplete_orders = False
+                
     @api.depends('total_service', 'total_order')
     def _compute_total_sale(self):
         """Tổng chi phí = total_service + total_order"""
@@ -148,34 +144,9 @@ class CyberSession(models.Model):
             else:
                 rec.end_time_expected = False
 
-    # ==========================
-    # AUTO CLOSE MECHANISM
-    # ==========================
-    def _auto_close_if_out_of_balance(self):
-        """Kiểm tra và tự động đóng phiên nếu hết tiền hoặc hết thời gian"""
-        for rec in self:
-            if rec.session_state != 'running':
-                continue
-            
-            now = fields.Datetime.now()
-            should_close = False
-            reason = None
-            
-            if rec.account_id and rec.account_id.balance <= 0:
-                should_close = True
-                reason = 'low_balance'
-            elif rec.end_time_expected and now >= rec.end_time_expected:
-                should_close = True
-                reason = 'time_expired'
-            
-            if should_close and reason:
-                rec.action_close_session(auto=True, reason=reason)
 
-    # ==========================
-    # CLOSE SESSION ACTION
-    # ==========================
-    def action_close_session(self, auto=False, reason=None):
-        """Đóng phiên thủ công hoặc tự động. Nếu auto=True và balance không đủ, cắt duration"""
+    def action_close_session(self):
+        """Đóng phiên thủ công"""
         for rec in self:
             # Kiểm tra phiên phải đang running
             if rec.session_state != 'running':
@@ -191,81 +162,62 @@ class CyberSession(models.Model):
                     "Vui lòng hoàn thành hoặc hủy các đơn hàng này trước."
                 ) % order_names)
             
-            # Lưu lại duration cũ trước khi đóng phiên để tính usage_hours
-            old_duration = rec.duration
-            
-            if auto and rec.account_id:
-                available_for_service = rec.account_id.balance - rec.total_order
-                
-                if available_for_service < 0:
-                    available_for_service = 0
-                
-                if rec.price_per_hour > 0:
-                    max_duration_hours = available_for_service / rec.price_per_hour
-                    
-                    if rec.start_time:
-                        current_duration = (fields.Datetime.now() - rec.start_time).total_seconds() / 3600
-                        
-                        if current_duration > max_duration_hours:
-                            adjusted_end_time = rec.start_time + timedelta(hours=max_duration_hours)
-                            rec.write({
-                                'end_time': adjusted_end_time,
-                                'session_state': 'closed'
-                            })
-                        else:
-                            rec.write({
-                                'end_time': fields.Datetime.now(),
-                                'session_state': 'closed'
-                            })
-                    else:
-                        rec.write({
-                            'end_time': fields.Datetime.now(),
-                            'session_state': 'closed'
-                        })
-                else:
-                    rec.write({
-                        'end_time': fields.Datetime.now(),
-                        'session_state': 'closed'
-                    })
-            else:
-                rec.write({
-                    'end_time': fields.Datetime.now(),
-                    'session_state': 'closed'
-                })
+            # Đóng phiên với end_time = now
+            rec.write({
+                'end_time': fields.Datetime.now(),
+                'session_state': 'closed'
+            })
             
             # Tính lại các field computed cho session
             rec._compute_duration()
             rec._compute_total_service()
             rec._compute_total_sale()
+
+            # Tính last_session_end
+            rec.account_id.update_last_dates()
+        return True
+    
+    def action_start_session(self):
+        """Bắt đầu phiên từ draft với kiểm tra đầy đủ"""
+        for rec in self:
+            # Kiểm tra 1: Phiên phải ở trạng thái draft
+            if rec.session_state != 'draft':
+                raise UserError(_("Chỉ có thể bắt đầu phiên ở trạng thái Draft"))
             
-            # ========================
-            # CẬP NHẬT USAGE_HOURS CHO MÁY
-            # ========================
-            rec._update_machine_usage_hours(old_duration)
+            # Kiểm tra 2: Account phải tồn tại
+            if not rec.account_id:
+                raise ValidationError(_("Tài khoản là bắt buộc để bắt đầu phiên"))
             
-            # Post message vào chatter
-            if auto:
-                if reason:
-                    message = _("Session auto-closed due to %s") % reason
-                else:
-                    message = _("Session auto-closed")
-                rec.message_post(body=message)
-            else:
-                rec.message_post(body=_("Session closed manually"))
+            # Kiểm tra 3: Account không có phiên nào đang chạy
+            existing_session = self.search([
+                ('account_id', '=', rec.account_id.id),
+                ('session_state', '=', 'running'),
+                ('id', '!=', rec.id)
+            ], limit=1)
+            if existing_session:
+                raise ValidationError(_(
+                    "Tài khoản %s đang có phiên %s đang chạy.\n"
+                    "Vui lòng đóng phiên đó trước khi bắt đầu phiên mới."
+                ) % (rec.account_id.username, existing_session.name))
             
-            # ========================
-            # CẬP NHẬT TRẠNG THÁI MÁY
-            # ========================
-            if rec.product_machine_id and hasattr(rec.product_machine_id, 'machine_using_status'):
-                rec.product_machine_id.product_tmpl_id.with_context(skip_readonly=True).write({
-                    'machine_using_status': 'offline'
-                })
-                rec.message_post(body=_("✅ Máy được đặt thành: <b>Ngoại tuyến</b>"))
+            # Kiểm tra 4: Machine phải tồn tại
+            if not rec.product_machine_id:
+                raise ValidationError(_("Máy là bắt buộc để bắt đầu phiên"))
             
-            # ========================
-            # TỰ ĐỘNG TẠO PHIẾU XUẤT KHO
-            # ========================
-            rec._create_stock_picking_from_orders()
+            # Kiểm tra 5: Balance phải > 0
+            if rec.account_id.balance <= 0:
+                raise ValidationError(_("Số dư tài khoản không đủ để bắt đầu phiên"))
+            
+            # Kiểm tra 6: Price per hour phải > 0
+            if rec.price_per_hour <= 0:
+                raise ValidationError(_("Giá mỗi giờ của máy phải lớn hơn 0. Vui lòng kiểm tra cấu hình sản phẩm máy."))
+            
+            # Set session_state='running' và start_time=now()
+            now = fields.Datetime.now()
+            rec.write({
+                'start_time': now,
+                'session_state': 'running'
+            })
         
         return True
 
@@ -305,43 +257,12 @@ class CyberSession(models.Model):
             product_template.with_context(skip_readonly=True).write({
                 'usage_hours': updated_usage
             })
-            
-            # Log message vào session
-            self.message_post(
-                body=_("<b>Cập nhật giờ sử dụng máy</b><br/>"
-                       "Máy: <b>%s</b><br/>"
-                       "Giờ sử dụng phiên này: <b>%s giờ</b><br/>"
-                       "Tổng giờ đã sử dụng: <b>%s → %s giờ</b>") % (
-                    product_template.name,
-                    new_usage_hours,
-                    current_usage,
-                    updated_usage
-                )
-            )
-            
-            # Log message vào product
-            product_template.message_post(
-                body=_("<b>Cập nhật giờ sử dụng</b><br/>"
-                       "Session: <b>%s</b><br/>"
-                       "Giờ sử dụng thêm: <b>+%s giờ</b><br/>"
-                       "Tổng giờ: <b>%s giờ</b>") % (
-                    self.name,
-                    new_usage_hours,
-                    updated_usage
-                )
-            )
 
     # ==========================
     # PHIẾU XUẤT KHO TỰ ĐỘNG
     # ==========================
     def _create_stock_picking_from_orders(self):
         """
-        Tạo phiếu xuất kho từ các order hoàn thành trong phiên
-        - Gom tất cả các order có order_state='done' thành 1 phiếu xuất
-        - Tạo cyber stock.move cho mỗi order (sử dụng CyberStockMove)
-        - Tự động confirm, gán quantity_done và validate phiếu xuất
-        - Giảm số lượng tồn kho (stock.quant) theo số lượng order
-        
         Returns:
             stock.picking: Phiếu xuất được tạo, hoặc None nếu không có order
         """
@@ -351,7 +272,6 @@ class CyberSession(models.Model):
         done_orders = self.order_ids.filtered(lambda o: o.order_state == 'done')
         
         if not done_orders:
-            self.message_post(body=_("Không có order nào được hoàn thành để xuất kho."))
             return None
         
         # Kiểm tra tránh tạo phiếu xuất trùng lặp
@@ -361,9 +281,6 @@ class CyberSession(models.Model):
         ], limit=1)
         
         if existing_picking:
-            self.message_post(
-                body=_("Phiếu xuất kho đã tồn tại: <b>%s</b>") % existing_picking.name
-            )
             return existing_picking
 
         try:
@@ -434,9 +351,6 @@ class CyberSession(models.Model):
             # Nếu không có move nào được tạo, xóa picking
             if not move_ids:
                 picking.unlink()
-                self.message_post(
-                    body=_("Không có sản phẩm nào để xuất kho (kiểm tra domain is_good).")
-                )
                 return None
 
             # ==========================================
@@ -444,19 +358,6 @@ class CyberSession(models.Model):
             # ==========================================
             picking.action_confirm()
             picking.button_validate()
-
-            # ==========================================
-            # BƯỚC 6: LOG MESSAGE VÀO CHATTER
-            # ==========================================
-            order_info = ', '.join(order_details)
-            self.message_post(
-                body=_("<b>Phiếu xuất kho tự động được tạo thành công</b><br/>"
-                       "Picking: <b>%s</b><br/>"
-                       "Sản phẩm: <b>%s</b><br/>"
-                       "Trạng thái: <b>Đã validate</b>") % (
-                    picking.name, order_info
-                )
-            )
 
             return picking
 
@@ -470,55 +371,6 @@ class CyberSession(models.Model):
                 _("Lỗi khi tạo phiếu xuất kho tự động:\n%s") % error_msg
             )
 
-    def action_manual_create_picking(self):
-        """
-        Action button: Thủ công tạo phiếu xuất kho
-        Chỉ có thể gọi khi phiên đã đóng
-        """
-        self.ensure_one()
-        
-        if self.session_state == 'running':
-            raise UserError(
-                _("Chỉ có thể tạo phiếu xuất kho khi phiên đã đóng.")
-            )
-        
-        picking = self._create_stock_picking_from_orders()
-        
-        if picking:
-            return {
-                'type': 'ir.actions.act_window',
-                'name': _('Phiếu Xuất Kho'),
-                'res_model': 'stock.picking',
-                'view_mode': 'form',
-                'res_id': picking.id,
-                'target': 'current',
-            }
-        else:
-            raise UserError(
-                _("Không thể tạo phiếu xuất kho. Kiểm tra các order đã hoàn thành.")
-            )
-
-    def action_view_pickings(self):
-        """
-        Action button: Xem tất cả phiếu xuất kho của phiên
-        """
-        self.ensure_one()
-        
-        pickings = self.env['stock.picking'].search([
-            ('origin', '=', f'cyber.session,{self.id}')
-        ])
-        
-        if not pickings:
-            raise UserError(_("Không có phiếu xuất kho nào cho phiên này."))
-        
-        return {
-            'type': 'ir.actions.act_window',
-            'name': _('Phiếu Xuất Kho - Phiên %s') % self.name,
-            'res_model': 'stock.picking',
-            'view_mode': 'tree,form',
-            'domain': [('id', 'in', pickings.ids)],
-            'target': 'current',
-        }
     
     def action_start_session(self):
         """Bắt đầu phiên từ draft với kiểm tra đầy đủ"""
@@ -562,10 +414,6 @@ class CyberSession(models.Model):
                 rec.product_machine_id.product_tmpl_id.with_context(skip_readonly=True).write({
                     'machine_using_status': 'in_use'
                 })
-                rec.message_post(body=_("Máy được đặt thành: <b>Đang sử dụng</b>"))
-            
-            time_str = now.strftime('%H:%M')
-            rec.message_post(body=_("Session started at %s") % time_str)
         
         return True
 
@@ -605,7 +453,6 @@ class CyberSession(models.Model):
             vals.pop('start_time', None)
 
         session = super(CyberSession, self).create(vals)
-        session.message_post(body=_("Session created in draft state."))
         return session
 
     # ========================
@@ -613,61 +460,33 @@ class CyberSession(models.Model):
     # ========================
     @api.model
     def action_autoclose_sessions(self):
-        """Tìm và đóng tất cả phiên hết hạn hoặc hết tiền (batch 50 records)"""
+        """Tự động đóng các phiên đã hết thời gian dự kiến"""
         now = fields.Datetime.now()
         
-        domain_low_balance = [
-            ('session_state', '=', 'running'),
-            ('account_id.balance', '<=', 0)
-        ]
-        
-        domain_time_expired = [
+        # Tìm các phiên running có end_time_expected <= now
+        sessions = self.search([
             ('session_state', '=', 'running'),
             ('end_time_expected', '!=', False),
             ('end_time_expected', '<=', now)
-        ]
-        
-        sessions_low_balance = self.search(domain_low_balance, limit=50)
-        sessions_time_expired = self.search(domain_time_expired, limit=50)
-        
-        all_sessions = (sessions_low_balance | sessions_time_expired)
-        if len(all_sessions) > 50:
-            all_sessions = all_sessions[:50]
+        ], limit=50)
         
         closed_count = 0
-        failed_sessions = []
         
-        for session in all_sessions:
+        for session in sessions:
             try:
-                reason = None
-                if session.account_id and session.account_id.balance <= 0:
-                    reason = 'low_balance'
-                elif session.end_time_expected and now >= session.end_time_expected:
-                    reason = 'time_expired'
-                
-                session.action_close_session(auto=True, reason=reason)
-                closed_count += 1
-            except Exception as e:
-                failed_sessions.append({
-                    'session_id': session.id,
-                    'session_name': session.name,
-                    'error': str(e)
+                # Đóng phiên với end_time = end_time_expected (không kiểm tra order)
+                session.write({
+                    'end_time': session.end_time_expected,
+                    'session_state': 'closed'
                 })
+                
+                # Tính lại các field computed
+                session._compute_duration()
+                session._compute_total_service()
+                session._compute_total_sale()
+                
+                closed_count += 1
+            except Exception:
                 continue
-        
-        log_message = f"Auto-closed {closed_count} sessions at {now}"
-        if failed_sessions:
-            log_message += f". Failed to close {len(failed_sessions)} sessions: {failed_sessions}"
-        
-        self.env['ir.logging'].create({
-            'name': 'Cyber Session Auto-Close',
-            'type': 'server',
-            'dbname': self.env.cr.dbname,
-            'level': 'INFO',
-            'message': log_message,
-            'path': 'cyber.session',
-            'line': '0',
-            'func': 'action_autoclose_sessions',
-        })
         
         return closed_count
