@@ -147,17 +147,11 @@ class CyberInvoice(models.Model):
                 }
             }
 
-        # Điền account từ session
+        # Điền account từ session (NHƯNG CHƯA SET partner_id)
         if session.account_id:
             self.account_id = session.account_id
-            # **QUAN TRỌNG**: Map account.customer_id -> partner_id (Odoo native field)
-            if session.account_id.customer_id:
-                self.partner_id = session.account_id.customer_id
-            else:
-                self.partner_id = False
         else:
             self.account_id = False
-            self.partner_id = False
 
         # Điền tổng chi phí và duration
         self.total_cost = session.total_sale or 0.0
@@ -168,7 +162,8 @@ class CyberInvoice(models.Model):
         self.surcharge_percent = 0.0
         self.tax_percent = 0.0
 
-        # Tạo invoice lines
+        # **QUAN TRỌNG**: Tạo invoice lines TRƯỚC khi set partner_id
+        # Để tránh Odoo trigger onchange partner_id và làm sai amount
         invoice_lines = []
 
         # Thêm dịch vụ máy (session service)
@@ -192,8 +187,14 @@ class CyberInvoice(models.Model):
                     'payment_method': 'cash',
                 }))
 
-        # Gán invoice lines
+        #  invoice lines 
         self.invoice_line_ids = [(5, 0, 0)] + invoice_lines
+
+        
+        if session.account_id and session.account_id.customer_id:
+            self.partner_id = session.account_id.customer_id
+        else:
+            self.partner_id = False
 
     @api.model_create_multi
     def create(self, vals_list):
