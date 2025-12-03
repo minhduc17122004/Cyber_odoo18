@@ -162,6 +162,9 @@ class CyberSession(models.Model):
                     "Vui lòng hoàn thành hoặc hủy các đơn hàng này trước."
                 ) % order_names)
             
+            # Lưu duration trước khi update end_time
+            old_duration = rec.duration
+            
             # Đóng phiên với end_time = now
             rec.write({
                 'end_time': fields.Datetime.now(),
@@ -172,9 +175,25 @@ class CyberSession(models.Model):
             rec._compute_duration()
             rec._compute_total_service()
             rec._compute_total_sale()
+            
+            # ========================
+            # CẬP NHẬT TRẠNG THÁI MÁY
+            # ========================
+            if rec.product_machine_id and hasattr(rec.product_machine_id, 'machine_using_status'):
+                rec.product_machine_id.product_tmpl_id.with_context(skip_readonly=True).write({
+                    'machine_using_status': 'offline'
+                })
+            
+            # ========================
+            # CẬP NHẬT USAGE HOURS CHO MÁY
+            # ========================
+            rec._update_machine_usage_hours(old_duration)
+            
+            # ========================
+            # TỰ ĐỘNG TẠO PHIẾU XUẤT KHO
+            # ========================
+            rec._create_stock_picking_from_orders()
 
-            # Tính last_session_end
-            rec.account_id.update_last_dates()
         return True
     
     def action_start_session(self):
@@ -218,6 +237,14 @@ class CyberSession(models.Model):
                 'start_time': now,
                 'session_state': 'running'
             })
+            
+            # ========================
+            # CẬP NHẬT TRẠNG THÁI MÁY
+            # ========================
+            if rec.product_machine_id and hasattr(rec.product_machine_id, 'machine_using_status'):
+                rec.product_machine_id.product_tmpl_id.with_context(skip_readonly=True).write({
+                    'machine_using_status': 'in_use'
+                })
         
         return True
 
@@ -246,17 +273,21 @@ class CyberSession(models.Model):
         # Tính thời gian sử dụng mới (duration sau khi đóng - duration trước đó)
         new_usage = self.duration - old_duration
         
-        # Làm tròn thành số nguyên giờ
-        new_usage_hours = int(round(new_usage))
+        # Làm tròn thành số thập phân
+        new_usage_hours = round(new_usage, 2)
         
         if new_usage_hours > 0:
             # Cập nhật usage_hours của máy với context skip_readonly
-            current_usage = product_template.usage_hours or 0
+            current_usage = product_template.usage_hours or 0.0
             updated_usage = current_usage + new_usage_hours
             
-            product_template.with_context(skip_readonly=True).write({
-                'usage_hours': updated_usage
-            })
+            try:
+                product_template.with_context(skip_readonly=True).write({
+                    'usage_hours': updated_usage
+                })
+            except Exception as e:
+                # Log lỗi nhưng không dừng quá trình đóng phiên
+                pass
 
     # ==========================
     # PHIẾU XUẤT KHO TỰ ĐỘNG
@@ -371,52 +402,6 @@ class CyberSession(models.Model):
                 _("Lỗi khi tạo phiếu xuất kho tự động:\n%s") % error_msg
             )
 
-    
-    def action_start_session(self):
-        """Bắt đầu phiên từ draft với kiểm tra đầy đủ"""
-        for rec in self:
-            if rec.session_state != 'draft':
-                raise UserError(_("Chỉ có thể bắt đầu phiên ở trạng thái Draft"))
-            
-            if not rec.account_id:
-                raise ValidationError(_("Tài khoản là bắt buộc để bắt đầu phiên"))
-            
-            existing_session = self.search([
-                ('account_id', '=', rec.account_id.id),
-                ('session_state', '=', 'running'),
-                ('id', '!=', rec.id)
-            ], limit=1)
-            if existing_session:
-                raise ValidationError(_(
-                    "Tài khoản %s đang có phiên %s đang chạy.\n"
-                    "Vui lòng đóng phiên đó trước khi bắt đầu phiên mới."
-                ) % (rec.account_id.username, existing_session.name))
-            
-            if not rec.product_machine_id:
-                raise ValidationError(_("Máy là bắt buộc để bắt đầu phiên"))
-            
-            if rec.account_id.balance <= 0:
-                raise ValidationError(_("Số dư tài khoản không đủ để bắt đầu phiên"))
-            
-            if rec.price_per_hour <= 0:
-                raise ValidationError(_("Giá mỗi giờ của máy phải lớn hơn 0. Vui lòng kiểm tra cấu hình sản phẩm máy."))
-            
-            now = fields.Datetime.now()
-            rec.write({
-                'start_time': now,
-                'session_state': 'running'
-            })
-            
-            # ========================
-            # CẬP NHẬT TRẠNG THÁI MÁY
-            # ========================
-            if rec.product_machine_id and hasattr(rec.product_machine_id, 'machine_using_status'):
-                rec.product_machine_id.product_tmpl_id.with_context(skip_readonly=True).write({
-                    'machine_using_status': 'in_use'
-                })
-        
-        return True
-
     # ========================
     # ONCHANGE METHODS
     # ========================
@@ -474,6 +459,9 @@ class CyberSession(models.Model):
         
         for session in sessions:
             try:
+                # Lưu duration trước khi update
+                old_duration = session.duration
+                
                 # Đóng phiên với end_time = end_time_expected (không kiểm tra order)
                 session.write({
                     'end_time': session.end_time_expected,
@@ -484,6 +472,18 @@ class CyberSession(models.Model):
                 session._compute_duration()
                 session._compute_total_service()
                 session._compute_total_sale()
+                
+                # Cập nhật usage hours
+                session._update_machine_usage_hours(old_duration)
+                
+                # Cập nhật trạng thái máy
+                if session.product_machine_id and hasattr(session.product_machine_id, 'machine_using_status'):
+                    session.product_machine_id.product_tmpl_id.with_context(skip_readonly=True).write({
+                        'machine_using_status': 'offline'
+                    })
+                
+                # Tạo phiếu xuất kho
+                session._create_stock_picking_from_orders()
                 
                 closed_count += 1
             except Exception:
