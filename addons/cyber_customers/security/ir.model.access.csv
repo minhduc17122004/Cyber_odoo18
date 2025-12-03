@@ -2,3 +2,4 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_cyber_customer_user,access_cyber_customer_user,model_res_partner,base.group_user,1,1,1,1
 access_customer_segment_user,access_customer_segment_user,model_customer_segment,base.group_user,1,1,1,1
 access_cyber_account,access_cyber_account,model_cyber_account,base.group_user,1,1,1,1
+access_cyber_topup_user,access_cyber_topup_user,model_cyber_topup,base.group_user,1,1,1,0
