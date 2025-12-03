@@ -50,7 +50,6 @@
                             <field name="username"/>
                             <field name="balance"/>
                             <field name="play_time_total"/>
-                            <field name="play_time_remaining"/>
                             <field name="total_spent"/>
                             <field name="state"/>
                         </list>
