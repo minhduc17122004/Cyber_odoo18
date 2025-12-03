@@ -163,6 +163,18 @@ class CyberSession(models.Model):
 
             # Tính last_session_end
             rec.account_id.update_last_dates()
+            
+            # Post message vào chatter khác nhau cho manual vs auto
+            # if auto:
+            #     # Auto close - include reason
+            #     if reason:
+            #         message = _("Session auto-closed due to %s") % reason
+            #     else:
+            #         message = _("Session auto-closed")
+            #     rec.message_post(body=message)
+            # else:
+            #     # Manual close
+            #     rec.message_post(body=_("Session closed manually"))
         
         return True
     
