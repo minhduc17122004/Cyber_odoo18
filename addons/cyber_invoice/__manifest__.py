@@ -10,7 +10,6 @@
         'base',
         'account',
         'cyber_customers',
-        'cyber_topup',
         'cyber_session',
     ],
     'data': [
