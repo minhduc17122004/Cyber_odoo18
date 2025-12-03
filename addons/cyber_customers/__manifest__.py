@@ -11,6 +11,7 @@
                 'views/customer_segments_views.xml',
                 'views/cyber_account_views.xml',
                 'views/cyber_customer_views.xml',
+                'views/cyber_topup_views.xml',
                 'views/menus.xml'
     ],
     'installable': True,

@@ -31,7 +31,7 @@ class CyberSession(models.Model):
         ('draft', 'Draft'),
         ('running', 'Running'),
         ('closed', 'Closed')
-    ], string='Session Status', default='draft', tracking=True)
+    ], string='Session Status', default='draft')
 
     order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
     picking_ids = fields.One2many(
@@ -148,9 +148,9 @@ class CyberSession(models.Model):
     def action_close_session(self):
         """Đóng phiên thủ công"""
         for rec in self:
-            # Kiểm tra phiên phải đang running
-            if rec.session_state != 'running':
-                raise UserError(_("Chỉ có thể đóng phiên đang chạy"))
+            #Kiểm tra phiên phải đang running
+            # if rec.session_state != 'running':
+                # raise UserError(_("Chỉ có thể đóng phiên đang chạy"))
             
             # Kiểm tra không có order nào đang in_progress
             in_progress_orders = rec.order_ids.filtered(lambda o: o.order_state == 'in_progress')
@@ -456,7 +456,7 @@ class CyberSession(models.Model):
         return session
 
     # ========================
-    # CRON AUTO-CLOSE
+    # CRON AUTO-CLOSE-SESSIONS
     # ========================
     @api.model
     def action_autoclose_sessions(self):

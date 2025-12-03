@@ -147,17 +147,11 @@ class CyberInvoice(models.Model):
                 }
             }
 
-        # Điền account từ session
+        # Điền account từ session (NHƯNG CHƯA SET partner_id)
         if session.account_id:
             self.account_id = session.account_id
-            # **QUAN TRỌNG**: Map account.customer_id -> partner_id (Odoo native field)
-            if session.account_id.customer_id:
-                self.partner_id = session.account_id.customer_id
-            else:
-                self.partner_id = False
         else:
             self.account_id = False
-            self.partner_id = False
 
         # Điền tổng chi phí và duration
         self.total_cost = session.total_sale or 0.0
@@ -168,7 +162,8 @@ class CyberInvoice(models.Model):
         self.surcharge_percent = 0.0
         self.tax_percent = 0.0
 
-        # Tạo invoice lines
+        # **QUAN TRỌNG**: Tạo invoice lines TRƯỚC khi set partner_id
+        # Để tránh Odoo trigger onchange partner_id và làm sai amount
         invoice_lines = []
 
         # Thêm dịch vụ máy (session service)
@@ -192,8 +187,14 @@ class CyberInvoice(models.Model):
                     'payment_method': 'cash',
                 }))
 
-        # Gán invoice lines
+        #  invoice lines 
         self.invoice_line_ids = [(5, 0, 0)] + invoice_lines
+
+        
+        if session.account_id and session.account_id.customer_id:
+            self.partner_id = session.account_id.customer_id
+        else:
+            self.partner_id = False
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -248,10 +249,7 @@ class CyberInvoice(models.Model):
         return super(CyberInvoice, self).write(vals)
 
     def action_post(self):
-        """
-        Override action_post để force lưu account_id, partner_id, session_id
-        trước khi posted (Odoo 17+ tự động xóa các field không required)
-        """
+        # Force giữ field custom trước khi post
         for rec in self:
             if rec.account_id or rec.partner_id or rec.session_id:
                 rec.sudo().write({
@@ -264,8 +262,11 @@ class CyberInvoice(models.Model):
                     'surcharge_percent': rec.surcharge_percent,
                     'tax_percent': rec.tax_percent,
                 })
-        
-        return super(CyberInvoice, self).action_post()
+
+        res = super(CyberInvoice, self).action_post()  
+        return res
+
+
 
     def action_draft(self):
         """
@@ -287,3 +288,31 @@ class AccountMoveLine(models.Model):
         default="cash",
         store=True
     )
+
+class AccountPaymentRegister(models.TransientModel):
+    _inherit = 'account.payment.register'
+
+    def _create_payments(self):
+        payments = super()._create_payments()
+
+        for payment in payments:
+            moves = payment.reconciled_invoice_ids  # các hóa đơn được thanh toán bởi payment
+
+            for invoice in moves:
+                # Tính tổng account_spent dựa trên line có payment_method == "account"
+                account_spent = 0.0
+                for line in invoice.invoice_line_ids:
+                    if line.payment_method == "account":
+                        account_spent += line.price_subtotal
+
+                # Cộng cho account nếu có
+                if invoice.account_id and account_spent > 0:
+                    invoice.account_id.total_spent += account_spent
+                    invoice.account_id.update_last_dates()
+                    invoice.account_id.play_time_total += invoice.duration
+
+                # Cộng cho customer
+                if invoice.partner_id:
+                    invoice.partner_id.total_spent += payment.amount
+
+        return payments
