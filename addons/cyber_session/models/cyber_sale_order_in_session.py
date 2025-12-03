@@ -4,7 +4,6 @@ from odoo.exceptions import UserError, ValidationError
 class CyberSaleOrderInSession(models.Model):
     _name = 'cyber.sale_order_in_session'
     _description = 'Sale Order in Session'
-    _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'id desc'
 
     session_id = fields.Many2one('cyber.session', string='Session', ondelete='cascade', required=True)
