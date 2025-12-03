@@ -6,7 +6,6 @@ from odoo.exceptions import UserError, ValidationError
 class CyberSession(models.Model):
     _name = 'cyber.session'
     _description = 'Cyber Game Session'
-    _inherit = ['mail.thread']
     _order = 'name desc'
 
     # ========================
@@ -32,26 +31,17 @@ class CyberSession(models.Model):
         ('draft', 'Draft'),
         ('running', 'Running'),
         ('closed', 'Closed')
-    ], string='Session Status', default='draft', tracking=True)
+    ], string='Session Status', default='draft')
 
     order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
 
     # ========================
     # NEW COMPUTED FIELDS
     # ========================
-    time_played = fields.Float(
-        string='Time Played (hours)',
-        compute='_compute_time_played',
-        store=True,
-        tracking=True,
-        digits=(12, 6)
-    )
-    
     time_remaining = fields.Float(
         string='Time Remaining (hours)',
         compute='_compute_time_remaining',
         store=True,
-        tracking=True,
         digits=(12, 6)
     )
     
@@ -59,7 +49,6 @@ class CyberSession(models.Model):
         string='Total Service Cost (VND)',
         compute='_compute_total_service',
         store=True,
-        tracking=True,
         digits=(16, 0)
     )
     
@@ -67,8 +56,13 @@ class CyberSession(models.Model):
         string='Total Order Cost (VND)',
         compute='_compute_total_order',
         store=True,
-        tracking=True,
         digits=(16, 0)
+    )
+    
+    has_incomplete_orders = fields.Boolean(
+        string='Has Incomplete Orders',
+        compute='_compute_has_incomplete_orders',
+        store=True
     )
 
     # ========================
@@ -83,16 +77,6 @@ class CyberSession(models.Model):
                 rec.duration = delta.total_seconds() / 3600
             else:
                 rec.duration = 0.0
-
-    @api.depends('start_time', 'session_state')
-    def _compute_time_played(self):
-        """Tính thời gian đã chơi (giờ)"""
-        for rec in self:
-            if rec.session_state == 'running' and rec.start_time:
-                delta = fields.Datetime.now() - rec.start_time
-                rec.time_played = delta.total_seconds() / 3600
-            else:
-                rec.time_played = 0.0
 
     @api.depends('account_id.balance', 'price_per_hour')
     def _compute_time_remaining(self):
@@ -120,38 +104,22 @@ class CyberSession(models.Model):
             done_orders = rec.order_ids.filtered(lambda o: o.order_state == 'done')
             rec.total_order = round(sum(done_orders.mapped('line_total')), 0)
 
+    @api.depends('order_ids.order_state', 'session_state')
+    def _compute_has_incomplete_orders(self):
+        """Kiểm tra xem phiên có order chưa hoàn thành không"""
+        for rec in self:
+            if rec.session_state == 'closed':
+                # Chỉ check khi phiên đã đóng
+                in_progress_orders = rec.order_ids.filtered(lambda o: o.order_state == 'in_progress')
+                rec.has_incomplete_orders = len(in_progress_orders) > 0
+            else:
+                rec.has_incomplete_orders = False
+
     @api.depends('total_service', 'total_order')
     def _compute_total_sale(self):
         """Tổng chi phí = total_service + total_order"""
         for rec in self:
             rec.total_sale = round(rec.total_service + rec.total_order, 0)
-
-    # ==========================
-    # AUTO CLOSE MECHANISM
-    # ==========================
-    def _auto_close_if_out_of_balance(self):
-        """Kiểm tra và tự động đóng phiên nếu hết tiền hoặc hết thời gian"""
-        for rec in self:
-            # Chỉ xử lý phiên đang running
-            if rec.session_state != 'running':
-                continue
-            
-            now = fields.Datetime.now()
-            should_close = False
-            reason = None
-            
-            # Kiểm tra điều kiện 1: Số dư account <= 0
-            if rec.account_id and rec.account_id.balance <= 0:
-                should_close = True
-                reason = 'low_balance'
-            # Kiểm tra điều kiện 2: Đã quá thời gian dự kiến kết thúc
-            elif rec.end_time_expected and now >= rec.end_time_expected:
-                should_close = True
-                reason = 'time_expired'
-            
-            # Gọi action_close_session với auto=True
-            if should_close and reason:
-                rec.action_close_session(auto=True, reason=reason)
 
     @api.depends('start_time', 'time_remaining')
     def _compute_end_time_expected(self):
@@ -165,8 +133,8 @@ class CyberSession(models.Model):
     # ==========================
     # CLOSE SESSION ACTION
     # ==========================
-    def action_close_session(self, auto=False, reason=None):
-        """Đóng phiên thủ công hoặc tự động. Nếu auto=True và balance không đủ, cắt duration"""
+    def action_close_session(self):
+        """Đóng phiên thủ công"""
         for rec in self:
             # Kiểm tra phiên phải đang running
             if rec.session_state != 'running':
@@ -181,52 +149,12 @@ class CyberSession(models.Model):
                     "Các sản phẩm: %s\n"
                     "Vui lòng hoàn thành hoặc hủy các đơn hàng này trước."
                 ) % order_names)
-            if auto and rec.account_id:
-                # Tính toán thời gian tối đa có thể chơi với số dư hiện tại
-                # available_balance = account.balance - total_order
-                # max_duration = available_balance / price_per_hour
-                available_for_service = rec.account_id.balance - rec.total_order
-                
-                if available_for_service < 0:
-                    available_for_service = 0
-                
-                if rec.price_per_hour > 0:
-                    max_duration_hours = available_for_service / rec.price_per_hour
-                    
-                    # Tính duration hiện tại
-                    if rec.start_time:
-                        current_duration = (fields.Datetime.now() - rec.start_time).total_seconds() / 3600
-                        
-                        # Nếu duration hiện tại vượt quá max_duration, cắt end_time
-                        if current_duration > max_duration_hours:
-                            # Cắt end_time để duration = max_duration_hours
-                            adjusted_end_time = rec.start_time + timedelta(hours=max_duration_hours)
-                            rec.write({
-                                'end_time': adjusted_end_time,
-                                'session_state': 'closed'
-                            })
-                        else:
-                            # Duration bình thường
-                            rec.write({
-                                'end_time': fields.Datetime.now(),
-                                'session_state': 'closed'
-                            })
-                    else:
-                        rec.write({
-                            'end_time': fields.Datetime.now(),
-                            'session_state': 'closed'
-                        })
-                else:
-                    rec.write({
-                        'end_time': fields.Datetime.now(),
-                        'session_state': 'closed'
-                    })
-            else:
-                # Manual close hoặc balance đủ - set end_time = now()
-                rec.write({
-                    'end_time': fields.Datetime.now(),
-                    'session_state': 'closed'
-                })
+            
+            # Đóng phiên với end_time = now
+            rec.write({
+                'end_time': fields.Datetime.now(),
+                'session_state': 'closed'
+            })
             
             # Tính lại các field computed cho session
             rec._compute_duration()
@@ -291,10 +219,6 @@ class CyberSession(models.Model):
                 'start_time': now,
                 'session_state': 'running'
             })
-            
-            # Post message vào chatter
-            time_str = now.strftime('%H:%M')
-            rec.message_post(body=_("Session started at %s") % time_str)
         
         return True
 
@@ -338,77 +262,40 @@ class CyberSession(models.Model):
             vals.pop('start_time', None)
 
         session = super(CyberSession, self).create(vals)
-        session.message_post(body=_("Session created in draft state."))
         return session
 
     # ========================
-    # CRON AUTO-CLOSE
+    # CRON AUTO-CLOSE-SESSIONS
     # ========================
     @api.model
     def action_autoclose_sessions(self):
-        """Tìm và đóng tất cả phiên hết hạn hoặc hết tiền (batch 50 records)"""
+        """Tự động đóng các phiên đã hết thời gian dự kiến"""
         now = fields.Datetime.now()
         
-        # Tìm phiên có account.balance <= 0
-        domain_low_balance = [
-            ('session_state', '=', 'running'),
-            ('account_id.balance', '<=', 0)
-        ]
-        
-        # Tìm phiên có expected_end_time <= now
-        domain_time_expired = [
+        # Tìm các phiên running có end_time_expected <= now
+        sessions = self.search([
             ('session_state', '=', 'running'),
             ('end_time_expected', '!=', False),
             ('end_time_expected', '<=', now)
-        ]
-        
-        # Search với limit 50 cho mỗi domain
-        sessions_low_balance = self.search(domain_low_balance, limit=50)
-        sessions_time_expired = self.search(domain_time_expired, limit=50)
-        
-        # Kết hợp và giới hạn tổng là 50 sessions
-        all_sessions = (sessions_low_balance | sessions_time_expired)
-        if len(all_sessions) > 50:
-            all_sessions = all_sessions[:50]
+        ], limit=50)
         
         closed_count = 0
-        failed_sessions = []
         
-        # Đóng từng session với exception handling
-        for session in all_sessions:
+        for session in sessions:
             try:
-                # Xác định reason để log
-                reason = None
-                if session.account_id and session.account_id.balance <= 0:
-                    reason = 'low_balance'
-                elif session.end_time_expected and now >= session.end_time_expected:
-                    reason = 'time_expired'
-                
-                session.action_close_session(auto=True, reason=reason)
-                closed_count += 1
-            except Exception as e:
-                # Lưu lại failed sessions để log
-                failed_sessions.append({
-                    'session_id': session.id,
-                    'session_name': session.name,
-                    'error': str(e)
+                # Đóng phiên với end_time = end_time_expected (không kiểm tra order)
+                session.write({
+                    'end_time': session.end_time_expected,
+                    'session_state': 'closed'
                 })
+                
+                # Tính lại các field computed
+                session._compute_duration()
+                session._compute_total_service()
+                session._compute_total_sale()
+                
+                closed_count += 1
+            except Exception:
                 continue
-        
-        # Log kết quả vào ir.logging
-        log_message = f"Auto-closed {closed_count} sessions at {now}"
-        if failed_sessions:
-            log_message += f". Failed to close {len(failed_sessions)} sessions: {failed_sessions}"
-        
-        self.env['ir.logging'].create({
-            'name': 'Cyber Session Auto-Close',
-            'type': 'server',
-            'dbname': self.env.cr.dbname,
-            'level': 'INFO',
-            'message': log_message,
-            'path': 'cyber.session',
-            'line': '0',
-            'func': 'action_autoclose_sessions',
-        })
         
         return closed_count
