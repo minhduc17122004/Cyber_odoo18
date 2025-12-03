@@ -66,8 +66,6 @@
                             <field name="machine_using_status"/>
                             <field name="location"/>
                             <field name="usage_hours"/>
-                            <field name="last_maintenance"/>
-                            <field name="next_maintenance"/>
                             <field name="ip_address"/>
                         </group>
                     </page>

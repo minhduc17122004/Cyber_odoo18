@@ -34,6 +34,11 @@ class CyberSession(models.Model):
     ], string='Session Status', default='draft')
 
     order_ids = fields.One2many('cyber.sale_order_in_session', 'session_id', string='Orders in Session')
+    picking_ids = fields.One2many(
+        'stock.picking',
+        compute='_compute_picking_ids',
+        string='Stock Pickings'
+    )
 
     # ========================
     # NEW COMPUTED FIELDS
@@ -68,6 +73,15 @@ class CyberSession(models.Model):
     # ========================
     # COMPUTE METHODS
     # ========================
+    @api.depends('order_ids')
+    def _compute_picking_ids(self):
+        """Lấy danh sách picking được tạo từ session này"""
+        for session in self:
+            pickings = self.env['stock.picking'].search([
+                ('origin', '=', f'cyber.session,{session.id}')
+            ])
+            session.picking_ids = pickings
+
     @api.depends('start_time', 'end_time')
     def _compute_duration(self):
         """Tính thời lượng phiên chơi"""
@@ -114,7 +128,7 @@ class CyberSession(models.Model):
                 rec.has_incomplete_orders = len(in_progress_orders) > 0
             else:
                 rec.has_incomplete_orders = False
-
+                
     @api.depends('total_service', 'total_order')
     def _compute_total_sale(self):
         """Tổng chi phí = total_service + total_order"""
@@ -130,9 +144,7 @@ class CyberSession(models.Model):
             else:
                 rec.end_time_expected = False
 
-    # ==========================
-    # CLOSE SESSION ACTION
-    # ==========================
+
     def action_close_session(self):
         """Đóng phiên thủ công"""
         for rec in self:
@@ -163,19 +175,6 @@ class CyberSession(models.Model):
 
             # Tính last_session_end
             rec.account_id.update_last_dates()
-            
-            # Post message vào chatter khác nhau cho manual vs auto
-            # if auto:
-            #     # Auto close - include reason
-            #     if reason:
-            #         message = _("Session auto-closed due to %s") % reason
-            #     else:
-            #         message = _("Session auto-closed")
-            #     rec.message_post(body=message)
-            # else:
-            #     # Manual close
-            #     rec.message_post(body=_("Session closed manually"))
-        
         return True
     
     def action_start_session(self):
@@ -222,6 +221,202 @@ class CyberSession(models.Model):
         
         return True
 
+    # ==========================
+    # CẬP NHẬT USAGE HOURS CHO MÁY
+    # ==========================
+    def _update_machine_usage_hours(self, old_duration):
+        """
+        Cập nhật tổng giờ sử dụng của máy sau khi đóng phiên
+        Chỉ cập nhật phần thời gian mới (duration hiện tại - duration cũ)
+        
+        Args:
+            old_duration: Duration trước khi đóng phiên
+        """
+        self.ensure_one()
+        
+        if not self.product_machine_id:
+            return
+        
+        # Lấy product template từ product variant
+        product_template = self.product_machine_id.product_tmpl_id
+        
+        if not product_template or not product_template.is_machine:
+            return
+        
+        # Tính thời gian sử dụng mới (duration sau khi đóng - duration trước đó)
+        new_usage = self.duration - old_duration
+        
+        # Làm tròn thành số nguyên giờ
+        new_usage_hours = int(round(new_usage))
+        
+        if new_usage_hours > 0:
+            # Cập nhật usage_hours của máy với context skip_readonly
+            current_usage = product_template.usage_hours or 0
+            updated_usage = current_usage + new_usage_hours
+            
+            product_template.with_context(skip_readonly=True).write({
+                'usage_hours': updated_usage
+            })
+
+    # ==========================
+    # PHIẾU XUẤT KHO TỰ ĐỘNG
+    # ==========================
+    def _create_stock_picking_from_orders(self):
+        """
+        Returns:
+            stock.picking: Phiếu xuất được tạo, hoặc None nếu không có order
+        """
+        self.ensure_one()
+
+        # Lấy tất cả các order đã hoàn thành ('done')
+        done_orders = self.order_ids.filtered(lambda o: o.order_state == 'done')
+        
+        if not done_orders:
+            return None
+        
+        # Kiểm tra tránh tạo phiếu xuất trùng lặp
+        existing_picking = self.env['stock.picking'].search([
+            ('origin', '=', f'cyber.session,{self.id}'),
+            ('state', 'in', ['draft', 'confirmed', 'assigned', 'done'])
+        ], limit=1)
+        
+        if existing_picking:
+            return existing_picking
+
+        try:
+            # ==========================================
+            # BƯỚC 1: LẤY CẤU HÌNH KHO VÀ PICKING TYPE
+            # ==========================================
+            warehouse = self.env['stock.warehouse'].search([], limit=1)
+            if not warehouse:
+                raise UserError(
+                    _("Không tìm thấy kho. Vui lòng thiết lập kho trước.")
+                )
+
+            picking_type = warehouse.out_type_id
+            if not picking_type:
+                raise UserError(
+                    _("Không tìm thấy kiểu phiếu xuất. Vui lòng thiết lập trong kho.")
+                )
+
+            # ==========================================
+            # BƯỚC 2: TẠO PHIẾU XUẤT KHO (PICKING)
+            # ==========================================
+            picking_vals = {
+                'picking_type_id': picking_type.id,
+                'location_id': warehouse.lot_stock_id.id,
+                'location_dest_id': picking_type.default_location_dest_id.id or warehouse.lot_stock_id.id,
+                'origin': f'cyber.session,{self.id}',
+            }
+            
+            # Tạo picking với context để đánh dấu là cyber picking
+            picking = self.env['stock.picking'].with_context(
+                is_cyber_picking=True
+            ).create(picking_vals)
+
+            # ==========================================
+            # BƯỚC 3: TẠO CYBER STOCK.MOVE CHO MỖI ORDER
+            # ==========================================
+            move_ids = []
+            order_details = []
+
+            for order in done_orders:
+                # Kiểm tra product có phải là good không
+                if not order.product_id or not order.product_id.is_good:
+                    continue
+
+                product = order.product_id
+                product_template = product.product_tmpl_id
+
+                # Tạo cyber stock move với cyber_product_id
+                move_vals = {
+                    'picking_id': picking.id,
+                    'product_id': product.id,
+                    'name': product.name,
+                    'product_uom_qty': order.quantity,
+                    'product_uom': product.uom_id.id,
+                    'location_id': warehouse.lot_stock_id.id,
+                    'location_dest_id': picking_type.default_location_dest_id.id or warehouse.lot_stock_id.id,
+                    'origin': f'cyber.sale_order_in_session,{order.id}',
+                }
+                
+                # Thêm cyber_product_id để đánh dấu move này là cyber move
+                if product_template:
+                    move_vals['cyber_product_id'] = product_template.id
+                
+                move = self.env['stock.move'].create(move_vals)
+                move_ids.append(move.id)
+                order_details.append(f"{product.name} x {int(order.quantity)}")
+
+            # Nếu không có move nào được tạo, xóa picking
+            if not move_ids:
+                picking.unlink()
+                return None
+
+            # ==========================================
+            # BƯỚC 4: CONFIRM & VALIDATE PHIẾU XUẤT
+            # ==========================================
+            picking.action_confirm()
+            picking.button_validate()
+
+            return picking
+
+        except Exception as e:
+            # Xóa picking nếu có lỗi trong quá trình tạo
+            if 'picking' in locals() and picking.exists():
+                picking.unlink()
+            
+            error_msg = str(e)
+            raise UserError(
+                _("Lỗi khi tạo phiếu xuất kho tự động:\n%s") % error_msg
+            )
+
+    
+    def action_start_session(self):
+        """Bắt đầu phiên từ draft với kiểm tra đầy đủ"""
+        for rec in self:
+            if rec.session_state != 'draft':
+                raise UserError(_("Chỉ có thể bắt đầu phiên ở trạng thái Draft"))
+            
+            if not rec.account_id:
+                raise ValidationError(_("Tài khoản là bắt buộc để bắt đầu phiên"))
+            
+            existing_session = self.search([
+                ('account_id', '=', rec.account_id.id),
+                ('session_state', '=', 'running'),
+                ('id', '!=', rec.id)
+            ], limit=1)
+            if existing_session:
+                raise ValidationError(_(
+                    "Tài khoản %s đang có phiên %s đang chạy.\n"
+                    "Vui lòng đóng phiên đó trước khi bắt đầu phiên mới."
+                ) % (rec.account_id.username, existing_session.name))
+            
+            if not rec.product_machine_id:
+                raise ValidationError(_("Máy là bắt buộc để bắt đầu phiên"))
+            
+            if rec.account_id.balance <= 0:
+                raise ValidationError(_("Số dư tài khoản không đủ để bắt đầu phiên"))
+            
+            if rec.price_per_hour <= 0:
+                raise ValidationError(_("Giá mỗi giờ của máy phải lớn hơn 0. Vui lòng kiểm tra cấu hình sản phẩm máy."))
+            
+            now = fields.Datetime.now()
+            rec.write({
+                'start_time': now,
+                'session_state': 'running'
+            })
+            
+            # ========================
+            # CẬP NHẬT TRẠNG THÁI MÁY
+            # ========================
+            if rec.product_machine_id and hasattr(rec.product_machine_id, 'machine_using_status'):
+                rec.product_machine_id.product_tmpl_id.with_context(skip_readonly=True).write({
+                    'machine_using_status': 'in_use'
+                })
+        
+        return True
+
     # ========================
     # ONCHANGE METHODS
     # ========================
@@ -236,8 +431,6 @@ class CyberSession(models.Model):
                         'message': _("Selected product is not a machine. Please select a valid machine product.")
                     }
                 }
-            # Price will be auto-filled via related field
-            # But we can add additional validations here
             if self.product_machine_id.list_price <= 0:
                 return {
                     'warning': {
@@ -252,12 +445,10 @@ class CyberSession(models.Model):
     @api.model
     def create(self, vals):
         """Tạo session ở trạng thái draft"""
-        # Tự động sinh session ID nếu là 'New'
         if vals.get('name', 'New') == 'New':
             timestamp = fields.Datetime.now().strftime('%Y%m%d%H%M%S')
             vals['name'] = f'SES{timestamp}'
 
-        # Chỉ set start_time khi session_state = 'running'
         if vals.get('session_state') != 'running':
             vals.pop('start_time', None)
 
