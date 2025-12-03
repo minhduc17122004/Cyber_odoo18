@@ -29,10 +29,6 @@ class CyberProduct(models.Model):
     location = fields.Char(string="Vị trí đặt máy")
     usage_hours = fields.Float(string="Tổng giờ đã sử dụng", default=0, readonly=True,
         help="Field này được cập nhật tự động bởi hệ thống khi phiên chơi kết thúc")
-    last_maintenance = fields.Date(string="Ngày bảo trì gần nhất", readonly=True,
-                                     help="Field này được cập nhật tự động khi bảo trì xong")
-    next_maintenance = fields.Date(string="Ngày bảo trì tiếp theo", readonly=True,
-                                     help="Field này được cập nhật tự động khi bảo trì xong")
     ip_address = fields.Char(string="Địa chỉ IP")
     
     # ============ GOOD FIELDS ============
