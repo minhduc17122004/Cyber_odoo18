@@ -121,6 +121,16 @@ class CyberInvoice(models.Model):
             else:
                 rec.customer_display = False
 
+    @api.onchange('partner_id')
+    def _onchange_partner_id(self):
+        """
+        Override onchange partner_id để không tính lại tax/amount khi đang trong onchange session_id
+        """
+        # Nếu đang trong onchange session_id, skip onchange partner_id 
+        if self.env.context.get('from_session_onchange'):
+            return {}
+        return super(CyberInvoice, self)._onchange_partner_id() if hasattr(super(CyberInvoice, self), '_onchange_partner_id') else {}
+
     @api.onchange('session_id')
     def _onchange_session_id(self):
         """
@@ -190,25 +200,27 @@ class CyberInvoice(models.Model):
         #  invoice lines 
         self.invoice_line_ids = [(5, 0, 0)] + invoice_lines
 
+       
+        # không trigger onchange của partner_id
+        # **QUAN TRỌNG**: Set partner_id với flag trong context để bypass onchange
+        # Giống như field cũ (readonly), không trigger onchange của partner_id
+        self.with_context(from_session_onchange=True).partner_id = session.account_id.customer_idon_id# **QUAN TRỌNG**: Set partner_id TRỰC TIẾP trong dict để bypass onchange
+        # Giống như field cũ (readonly), không trigger onchange của partner_id
+        self.with_context(from_session_onchange=True).partner_id = Falsesession_onchange=True).partner_id = session.account_id.customer_id
+        partner_vals = {}# **QUAN TRỌNG**: Set partner_id với skip_onchange để tránh Odoo tính lại tax/amount
+        self.with_context(from_session_onchange=True).partner_id = Falsenly), không trigger onchange
+        partner_vals['partner_id'] = session.account_id.customer_id.idr_id:
+            # Dùng with_context để bypass onchange của partner_id
+        partner_vals['partner_id'] = False
         
-        if session.account_id and session.account_id.customer_id:
-            self.partner_id = session.account_id.customer_id
+        # Write partner_id mà không trigger onchange
+        if partner_vals:
+            self.with_context(skip_onchange=True).write(partner_vals)onchange=True).partner_id = session.account_id.customer_id
         else:
-            self.partner_id = False
+            self.with_context(skip_onchange=True).partner_id = False
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        """
-        Override create để đảm bảo partner_id được set từ account_id.customer_id
-        """
-        for vals in vals_list:
-            # Nếu có account_id nhưng chưa có partner_id, map từ account
-            if vals.get('account_id') and not vals.get('partner_id'):
-                try:
-                    account = self.env['cyber.account'].browse(vals['account_id'])
-                    if account.customer_id:
-                        vals['partner_id'] = account.customer_id.id
-                    else:
+            vals['partner_id'] = account.customer_id.id
+                            else:
                         raise ValidationError(
                             _("Account '%s' không có customer liên kết. "
                               "Vui lòng thêm customer cho account này.") 
