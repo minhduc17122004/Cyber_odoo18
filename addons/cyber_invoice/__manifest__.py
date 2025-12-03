@@ -15,9 +15,9 @@
     ],
     'data': [
         'security/ir.model.access.csv',
-        'views/cyber_invoice_views.xml',
-        'views/cyber_invoice_customer.xml',
-        'views/cyber_invoice_supplier.xml',
+        # NOTE: Đã chuyển nội dung từ cyber_invoice_views.xml vào cyber_invoice_customer.xml
+        # NOTE: Đã xóa cyber_invoice_supplier.xml
+        'views/cyber_invoice_customer.xml',  # File root chính
         'views/cyber_invoice_report.xml',
     ],
     'installable': True,
