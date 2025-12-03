@@ -17,17 +17,22 @@ class CyberProduct(models.Model):
         ('active', 'Hoạt động'),
         ('maintenance', 'Bảo trì'),
         ('broken', 'Hỏng')
-    ], string="Trạng thái máy", default='active')
+    ], string="Trạng thái máy", default='active', readonly=True,
+        help="Field này được cập nhật tự động bởi hệ thống khi 1 phiếu bảo trì bắt đầu/kết thúc")
     
     machine_using_status = fields.Selection([
         ('offline', 'Ngoại tuyến'),
         ('in_use', 'Đang sử dụng')
-    ], string="Trạng thái hoạt động", default='offline')
+    ], string="Trạng thái hoạt động", default='offline', readonly=True,
+        help="Field này được cập nhật tự động bởi hệ thống khi phiên chơi bắt đầu/kết thúc")
     
     location = fields.Char(string="Vị trí đặt máy")
-    usage_hours = fields.Integer(string="Tổng giờ đã sử dụng", default=0)
-    last_maintenance = fields.Date(string="Ngày bảo trì gần nhất")
-    next_maintenance = fields.Date(string="Ngày bảo trì tiếp theo")
+    usage_hours = fields.Float(string="Tổng giờ đã sử dụng", default=0, readonly=True,
+        help="Field này được cập nhật tự động bởi hệ thống khi phiên chơi kết thúc")
+    last_maintenance = fields.Date(string="Ngày bảo trì gần nhất", readonly=True,
+                                     help="Field này được cập nhật tự động khi bảo trì xong")
+    next_maintenance = fields.Date(string="Ngày bảo trì tiếp theo", readonly=True,
+                                     help="Field này được cập nhật tự động khi bảo trì xong")
     ip_address = fields.Char(string="Địa chỉ IP")
     
     # ============ GOOD FIELDS ============
