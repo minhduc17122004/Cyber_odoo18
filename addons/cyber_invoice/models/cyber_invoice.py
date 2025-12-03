@@ -262,29 +262,7 @@ class CyberInvoice(models.Model):
                     'tax_percent': rec.tax_percent,
                 })
 
-        # Post invoice
-        res = super(CyberInvoice, self).action_post()
-
-        for rec in self:
-            if rec.move_type != "out_invoice":
-                continue
-
-            account_spent = 0.0
-
-            for line in rec.invoice_line_ids:
-                # Cộng cho account
-                if line.payment_method == "account":
-                    account_spent += line.price_subtotal
-                if account_spent > 0:
-                    rec.account_id.total_spent += account_spent
-
-            # Cộng cho customer
-            if rec.partner_id:
-                rec.partner_id.total_spent += rec.amount_total
-            
-            # Tính last_spend_date
-                rec.account_id.update_last_dates()
-                
+        res = super(CyberInvoice, self).action_post()  
         return res
 
 
@@ -309,3 +287,31 @@ class AccountMoveLine(models.Model):
         default="cash",
         store=True
     )
+
+class AccountPaymentRegister(models.TransientModel):
+    _inherit = 'account.payment.register'
+
+    def _create_payments(self):
+        payments = super()._create_payments()
+
+        for payment in payments:
+            moves = payment.reconciled_invoice_ids  # các hóa đơn được thanh toán bởi payment
+
+            for invoice in moves:
+                # Tính tổng account_spent dựa trên line có payment_method == "account"
+                account_spent = 0.0
+                for line in invoice.invoice_line_ids:
+                    if line.payment_method == "account":
+                        account_spent += line.price_subtotal
+
+                # Cộng cho account nếu có
+                if invoice.account_id and account_spent > 0:
+                    invoice.account_id.total_spent += account_spent
+                    invoice.account_id.update_last_dates()
+                    invoice.account_id.play_time_total += invoice.duration
+
+                # Cộng cho customer
+                if invoice.partner_id:
+                    invoice.partner_id.total_spent += payment.amount
+
+        return payments
