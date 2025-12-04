@@ -39,11 +39,11 @@ class CyberAccount(models.Model):
         for rec in self:
             # Lấy ngày chơi cuối cùng bằng search phiên chơi với điều kiện account_id = rec.id
             last_session = self.env['cyber.session'].search(
-                [('account_id', '=', rec.id), ('start_time', '!=', False)],
-                order='start_time desc',
+                [('account_id', '=', rec.id), ('end_time', '!=', False)],
+                order='end_time desc',
                 limit=1
             )
-            rec.last_session_end = last_session.start_time if last_session else False
+            rec.last_session_end = last_session.end_time if last_session else False
 
             # Lấy ngày tiêu cuối cùng bằng search hóa đơn đã paid, liên kết account
             last_invoice = self.env['account.move'].search(
