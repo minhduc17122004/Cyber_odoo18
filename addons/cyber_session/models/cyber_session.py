@@ -17,7 +17,7 @@ class CyberSession(models.Model):
     start_time = fields.Datetime(string='Start Time', default=lambda self: fields.Datetime.now())
     end_time = fields.Datetime(string='End Time')
     end_time_expected = fields.Datetime(string='Expected End Time', compute='_compute_end_time_expected', store=True)
-    duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True, digits=(12, 6))
+    duration = fields.Float(string='Duration (hours)', compute='_compute_duration', store=True, digits=(12, 3))
     price_per_hour = fields.Float(
         string='Price per Hour (VND)',
         related='product_machine_id.list_price',
@@ -47,7 +47,7 @@ class CyberSession(models.Model):
         string='Time Remaining (hours)',
         compute='_compute_time_remaining',
         store=True,
-        digits=(12, 6)
+        digits=(12, 3)
     )
     
     total_service = fields.Float(

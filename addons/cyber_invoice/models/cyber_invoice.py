@@ -278,6 +278,10 @@ class CyberInvoice(models.Model):
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
+    quantity = fields.Float(
+        digits=(16, 3)
+    )
+
     payment_method = fields.Selection(
         [
             ("account", "Account"),

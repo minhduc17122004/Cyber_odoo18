@@ -27,8 +27,13 @@ class CyberProduct(models.Model):
         help="Field này được cập nhật tự động bởi hệ thống khi phiên chơi bắt đầu/kết thúc")
     
     location = fields.Char(string="Vị trí đặt máy")
-    usage_hours = fields.Float(string="Tổng giờ đã sử dụng", default=0, readonly=True,
-        help="Field này được cập nhật tự động bởi hệ thống khi phiên chơi kết thúc")
+    usage_hours = fields.Float(
+        string="Tổng giờ đã sử dụng",
+        default=0,
+        readonly=True,
+        digits=(16, 3),
+        help="Field này được cập nhật tự động bởi hệ thống khi phiên chơi kết thúc"
+    )
     ip_address = fields.Char(string="Địa chỉ IP")
     
     # ============ GOOD FIELDS ============
