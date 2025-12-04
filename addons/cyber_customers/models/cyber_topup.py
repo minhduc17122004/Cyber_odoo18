@@ -59,11 +59,11 @@ class CyberTopup(models.Model):
         topup.bonus_amount = bonus
         # <<< ADD END
 
-        # Cập nhật tổng số lần & ngày nạp gần nhất (nếu có field tương ứng)
+        # Cập nhật tổng số lần & ngày nạp gần nhất
         if hasattr(account, 'total_recharge'):
             account.total_recharge += total_add
         if hasattr(account, 'last_topup_date'):
-            account.last_topup_date = topup.create_date
+            account.update_last_dates()
 
         # Lưu lại thay đổi
         account.sudo().write({

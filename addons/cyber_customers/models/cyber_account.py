@@ -15,9 +15,9 @@ class CyberAccount(models.Model):
     play_time_total = fields.Float('Thời gian chơi (giờ)', default=0.0)
     total_spent = fields.Float(string="Tổng chi tiêu (VND)", digits=(10, 2), default=0.0)
     total_recharge = fields.Float(string="Tổng nạp (VND)", digits=(10, 2), default=0.0)
-    last_session_end = fields.Date(string="Thời gian chơi gần nhất")
-    last_topup_date = fields.Date(string="Thời gian nạp tiền gần nhất")
-    last_spend_date = fields.Date(string="Thời gian chi tiêu gần nhất")
+    last_session_end = fields.Datetime(string="Thời gian chơi gần nhất")
+    last_topup_date = fields.Datetime(string="Thời gian nạp tiền gần nhất")
+    last_spend_date = fields.Datetime(string="Thời gian chi tiêu gần nhất")
     state = fields.Selection([
         ('active', 'Hoạt động'),
         ('inactive', 'Không hoạt động')
@@ -39,23 +39,26 @@ class CyberAccount(models.Model):
         for rec in self:
             # Lấy ngày chơi cuối cùng bằng search phiên chơi với điều kiện account_id = rec.id
             last_session = self.env['cyber.session'].search(
-                [('account_id', '=', rec.id), ('start_time', '!=', False)],
-                order='start_time desc',
+                [('account_id', '=', rec.id), ('end_time', '!=', False)],
+                order='end_time desc',
                 limit=1
             )
-            rec.last_session_end = last_session.start_time
+            rec.last_session_end = last_session.end_time if last_session else False
 
             # Lấy ngày tiêu cuối cùng bằng search hóa đơn đã paid, liên kết account
             last_invoice = self.env['account.move'].search(
-                [
-                    ('account_id', '=', rec.id),
-                    ('state', '=', 'posted'),
-                    ('invoice_date', '!=', False)
-                ],
-                order='invoice_date desc',
+                [('account_id', '=', rec.id), ('status_in_payment', '=', 'paid')],
+                order='create_date desc',
                 limit=1
             )
-            rec.last_spend_date = last_invoice.invoice_date if last_invoice else False
+            rec.last_spend_date = last_invoice.create_date if last_invoice else False
+
+            last_topup = self.env['cyber.topup'].search(
+                [('account_id', '=', rec.id)],
+                order='create_date desc',
+                limit=1
+            )
+            rec.last_topup_date = last_topup.create_date if last_topup else False
 
     _sql_constraints =  [
         ('username_unique', 'unique(username)', 'Tên tài khoản đã tồn tại!') ]
