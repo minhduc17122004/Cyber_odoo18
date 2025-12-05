@@ -54,14 +54,14 @@ class CyberTopup(models.Model):
 
         # Tính số tiền cộng thêm (ví dụ discount_rate = 5 nghĩa là +5%)
         bonus = topup.amount * (discount_rate / 100.0)
-        total_add = topup.amount + bonus
+        total_add = round(topup.amount + bonus, 3)
         # >>> ADD START: lưu lại bonus để hiển thị và dễ kiểm soát
-        topup.bonus_amount = bonus
+        topup.bonus_amount = round(bonus, 3)
         # <<< ADD END
 
         # Cập nhật tổng số lần & ngày nạp gần nhất
         if hasattr(account, 'total_recharge'):
-            account.total_recharge += total_add
+            account.total_recharge = round(account.total_recharge + total_add, 3)
         if hasattr(account, 'last_topup_date'):
             account.update_last_dates()
 

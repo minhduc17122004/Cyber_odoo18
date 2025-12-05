@@ -278,6 +278,10 @@ class CyberInvoice(models.Model):
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
+    quantity = fields.Float(
+        digits=(16, 3)
+    )
+
     payment_method = fields.Selection(
         [
             ("account", "Account"),
@@ -305,14 +309,17 @@ class AccountPaymentRegister(models.TransientModel):
                     if line.payment_method == "account":
                         account_spent += line.price_subtotal
 
+                # Làm tròn đến 3 chữ số thập phân
+                account_spent = round(account_spent, 3)
+
                 # Cộng cho account nếu có
                 if invoice.account_id and account_spent > 0:
-                    invoice.account_id.total_spent += account_spent
+                    invoice.account_id.total_spent = round(invoice.account_id.total_spent + account_spent, 3)
                     invoice.account_id.update_last_dates()
                     invoice.account_id.play_time_total += invoice.duration
 
                 # Cộng cho customer
                 if invoice.partner_id:
-                    invoice.partner_id.total_spent += payment.amount
+                    invoice.partner_id.total_spent = round(invoice.partner_id.total_spent + payment.amount, 3)
 
         return payments
