@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_maintenance_request_cyber,access_maintenance_request_cyber,model_maintenance_request,,1,1,1,1
+access_cyber_expense,access_cyber_expense,model_cyber_expense,,1,1,1,1
+access_cyber_expense_type_user,access.cyber.expense.type.user,model_cyber_expense_type,,1,1,1,1

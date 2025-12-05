@@ -1,0 +1,78 @@
+<odoo>
+    <!-- LIST VIEW -->
+    <record id="view_cyber_sale_order_in_session_list" model="ir.ui.view">
+        <field name="name">cyber.sale_order_in_session.list</field>
+        <field name="model">cyber.sale_order_in_session</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="session_id" string="Phiên"/>
+                <field name="product_id" string="Sản phẩm"/>
+                <field name="quantity" string="Số lượng"/>
+                <field name="price_unit" string="Đơn giá"/>
+                <field name="line_total" readonly="1" string="Tổng tiền"/>
+                <field name="order_state" widget="badge" decoration-info="order_state == 'in_progress'" decoration-success="order_state == 'done'" decoration-danger="order_state == 'canceled'" string="Trạng thái"/>
+                <field name="note" string="Ghi chú"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- FORM VIEW -->
+    <record id="view_cyber_sale_order_in_session_form" model="ir.ui.view">
+        <field name="name">cyber.sale_order_in_session.form</field>
+        <field name="model">cyber.sale_order_in_session</field>
+        <field name="arch" type="xml">
+            <form string="Order in Session">
+                <header>
+                    <field name="order_state" widget="statusbar" statusbar_visible="in_progress,done,canceled"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <!-- Có thể thêm smart buttons ở đây sau -->
+                    </div>
+                    
+                    <div class="oe_title">
+                        <label for="product_id" class="oe_edit_only"/>
+                        <h1>
+                            <field name="product_id" placeholder="Chọn sản phẩm..." readonly="order_state == 'canceled'"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Thông tin đơn hàng">
+                            <field name="session_id" options="{'no_create': True}" string="Phiên"/>
+                            <field name="quantity" readonly="order_state == 'canceled'" string="Số lượng"/>
+                            <field name="price_unit" readonly="order_state == 'canceled'" widget="monetary" string="Đơn giá"/>
+                        </group>
+                        <group string="Tổng kết">
+                            <field name="line_total" readonly="1" widget="monetary" class="oe_subtotal_footer_separator" string="Tổng tiền"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <field name="note" placeholder="Ghi chú đặc biệt cho order này..." string="Ghi chú"/>
+                    </group>
+
+                    <notebook>
+                        <page string="Thông tin bổ sung" name="additional_info">
+                            <group>
+                                <group string="Liên kết">
+                                    <field name="session_id" readonly="1" string="Phiên"/>
+                                </group>
+                                <group string="Trạng thái">
+                                    <field name="order_state" widget="badge" string="Trạng thái"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ACTION -->
+    <record id="action_cyber_sale_order_in_session" model="ir.actions.act_window">
+        <field name="name">Orders in Session</field>
+        <field name="res_model">cyber.sale_order_in_session</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

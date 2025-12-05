@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    
+    <!-- ====== Stock Quant List ====== -->
+    <record id="view_cyber_stock_quant_list" model="ir.ui.view">
+        <field name="name">cyber.stock.quant.list</field>
+        <field name="model">stock.quant</field>
+        <field name="inherit_id" ref="stock.view_stock_quant_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="cyber_product_id"/>
+                <field name="quantity"/>
+                <field name="in_date"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Form view -->
+    <record id="view_cyber_stock_quant_form" model="ir.ui.view">
+        <field name="name">cyber.stock.quant.form</field>
+        <field name="model">stock.quant</field>
+        <field name="inherit_id" ref="stock.view_stock_quant_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <group string="Cyber Info">
+                    <field name="cyber_product_id"/>
+                    <field name="quantity"/>
+                    <field name="in_date"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+    <!-- Stock Quant -->
+    <record id="action_cyber_stock_quant" model="ir.actions.act_window">
+        <field name="name">Tồn kho Cyber</field>
+        <field name="res_model">stock.quant</field>
+        <field name="view_mode">list,form</field>
+        <field name="views" eval="[
+            (ref('view_cyber_stock_quant_list'), 'list'),
+            (ref('view_cyber_stock_quant_form'), 'form')
+        ]"/>
+        <field name="domain">[('location_id.usage','=','internal')]</field>
+    </record>
+    <menuitem id="menu_cyber_stock_quant" name="Tồn kho Cyber" parent="menu_cyber_inventory_root" action="action_cyber_stock_quant" sequence="30"/>
+</odoo>

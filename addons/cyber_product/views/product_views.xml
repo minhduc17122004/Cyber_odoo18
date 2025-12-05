@@ -1,81 +1,133 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Machine list -->
-    <record id="view_machine_list" model="ir.ui.view">
-        <field name="name">product.machine.list</field>
+
+    <!-- =================== LIST VIEWS =================== -->
+    
+    <!-- List view chung cho tất cả loại -->
+    <record id="view_cyber_product_list" model="ir.ui.view">
+        <field name="name">cyber.product.list</field>
         <field name="model">product.template</field>
         <field name="arch" type="xml">
-            <list string="Machine List">
+            <list>
                 <field name="name"/>
-                <field name="serial_number"/>
-                <field name="status"/>
-                <field name="last_maintenance"/>
-                <field name="categ_id"/>
+                <field name="is_machine" string="Máy"/>
+                <field name="is_good" string="Hàng"/>
+                <field name="is_component" string="Linh kiện"/>
+                <field name="list_price" string="Giá"/>
+                <field name="type" invisible="1"/>
             </list>
         </field>
     </record>
 
-    <!-- Machine form -->
-    <record id="view_machine_form" model="ir.ui.view">
-        <field name="name">product.machine.form</field>
+    <record id="view_cyber_product_search" model="ir.ui.view">
+        <field name="name">cyber.product.search</field>
         <field name="model">product.template</field>
         <field name="arch" type="xml">
-            <form string="Machine Form">
-                <group>
-                    <field name="name"/>
-                    <field name="serial_number"/>
-                    <field name="status"/>
-                    <field name="last_maintenance"/>
-                    <field name="categ_id"/>
+            <search>
+                <filter name="filter_machine" string="Máy" domain="[('is_machine','=',True)]"/>
+                <filter name="filter_good" string="Hàng hóa" domain="[('is_good','=',True)]"/>
+                <filter name="filter_component" string="Linh kiện" domain="[('is_component','=',True)]"/>
+            </search>
+        </field>
+    </record>
+
+
+    <!-- =================== FORM VIEWS =================== -->
+    
+    <!-- Form chung - dùng notebook pages thay vì group với attrs -->
+    <record id="view_cyber_product_form" model="ir.ui.view">
+        <field name="name">cyber.product.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="priority">16</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <!-- Chọn loại sản phẩm -->
+                <group string="Loại sản phẩm Cyber" colspan="2">
+                    <field name="is_machine" string="Máy dịch vụ"
+                        modifiers="{'readonly': [('is_good','=',True), ('is_component','=',True)]}"/>
+                    <field name="is_good" string="Hàng hóa"
+                        modifiers="{'readonly': [('is_machine','=',True), ('is_component','=',True)]}"/>
+                    <field name="is_component" string="Linh kiện"
+                        modifiers="{'readonly': [('is_machine','=',True), ('is_good','=',True)]}"/>
                 </group>
-            </form>
+
+                <!-- Notebook pages -->
+                <notebook>
+                    <!-- TAB SERVICE -->
+                    <page string="Service / Machine" invisible="not is_machine">
+                        <group>
+                            <field name="categ_id" 
+                                   domain="[('category_type','=','service')]"/>
+                            <field name="machine_status"/>
+                            <field name="machine_using_status"/>
+                            <field name="location"/>
+                            <field name="usage_hours"/>
+                            <field name="ip_address"/>
+                        </group>
+                    </page>
+
+                    <!-- TAB GOODS -->
+                    <page string="Hàng hóa" invisible="not is_good">
+                        <group>
+                            <field name="categ_id" 
+                                   domain="[('category_type','=','good')]"/>
+                            <field name="supplier_good_id"/>
+                            <field name="tax_percent"/>
+                            <field name="expiry_date"/>
+                            <field name="min_stock_good"/>
+                            <field name="good_status"/>
+                        </group>
+                    </page>
+
+                    <!-- TAB COMPONENT -->
+                    <page string="Linh kiện" invisible="not is_component">
+                        <group>
+                            <field name="categ_id" 
+                                   domain="[('category_type','=','component')]"/>
+                            <field name="supplier_component_id"/>
+                            <field name="lifetime_hours"/>
+                            <field name="min_stock_component"/>
+                            <field name="component_status"/>
+                        </group>
+                    </page>
+                </notebook>
+            </xpath>
         </field>
     </record>
 
-    <!-- Service list -->
-    <record id="view_service_list" model="ir.ui.view">
-        <field name="name">product.service.list</field>
-        <field name="model">product.template</field>
-        <field name="arch" type="xml">
-            <list string="Service List">
-                <field name="name"/>
-                <field name="status"/>
-                <field name="categ_id"/>
-            </list>
-        </field>
-    </record>
-
-    <!-- Service form -->
-    <record id="view_service_form" model="ir.ui.view">
-        <field name="name">product.service.form</field>
-        <field name="model">product.template</field>
-        <field name="arch" type="xml">
-            <form string="Service Form">
-                <group>
-                    <field name="name"/>
-                    <field name="status"/>
-                    <field name="categ_id"/>
-                </group>
-            </form>
-        </field>
-    </record>
-
-    <!-- Actions -->
-    <record id="action_machine_list" model="ir.actions.act_window">
-        <field name="name">Machines</field>
+    <!-- =================== ACTIONS =================== -->
+    
+    <record id="action_cyber_product" model="ir.actions.act_window">
+        <field name="name">Sản phẩm Cyber</field>
         <field name="res_model">product.template</field>
         <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_machine_list"/>
-        <field name="domain">[('is_machine','=',True)]</field>
-        <field name="context">{'default_is_machine': True}</field>
+        <field name="search_view_id" ref="view_cyber_product_search"/>
+        <field name="views" eval="[
+            (ref('view_cyber_product_list'), 'list'),
+            (ref('view_cyber_product_form'), 'form')
+        ]"/>
+        <field name="domain" eval="[
+            '|', '|',
+            ('is_machine', '=', True),
+            ('is_good', '=', True),
+            ('is_component', '=', True)
+        ]"/>
     </record>
 
-    <record id="action_service_list" model="ir.actions.act_window">
-        <field name="name">Services</field>
-        <field name="res_model">product.template</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_service_list"/>
-        <field name="domain">[('is_service','=',True)]</field>
-        <field name="context">{'default_is_service': True}</field>
-    </record>
+    <!-- =================== MENU =================== -->
+    
+    <menuitem id="menu_cyber_product_root" 
+              name="Cyber Products" 
+              sequence="10"/>
+    
+    <menuitem id="menu_cyber_product" 
+              name="Sản phẩm" 
+              parent="menu_cyber_product_root" 
+              action="action_cyber_product" 
+              sequence="1"/>
+
 </odoo>

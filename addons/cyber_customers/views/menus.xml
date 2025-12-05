@@ -1,0 +1,29 @@
+    <odoo>
+        <!-- MENU CHA -->
+        <menuitem id="menu_cyber_root" name="Cyber Customers"/>
+        <menuitem id="menu_cyber_account_root" name="Quản lý tài khoản" parent="menu_cyber_root" sequence="20"/>
+
+        <menuitem id="menu_cyber_customer" name="Quản lý khách hàng"
+            parent="menu_cyber_root"
+            action="action_cyber_customer"
+            sequence="10"/>
+
+    <menuitem id="menu_cyber_account" name="Quản lý tài khoản"
+            parent="menu_cyber_account_root"
+            action="action_cyber_account"
+            sequence="10"/>
+
+    <menuitem id="menu_customer_segment" name="Quản lý phân khúc"
+            parent="menu_cyber_root"
+            action="action_customer_segment"
+            sequence="30"/>
+
+    <menuitem id="menu_cyber_topup"
+            name="Nạp tiền"
+            parent="menu_cyber_account_root"
+            action="action_cyber_topup"
+            sequence="20"
+            groups="base.group_user"/>
+
+
+    </odoo>
