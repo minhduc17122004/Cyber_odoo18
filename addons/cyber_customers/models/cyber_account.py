@@ -11,10 +11,10 @@ class CyberAccount(models.Model):
 
     username = fields.Char('Tài khoản', required=True)
     password = fields.Char('Mật khẩu', required=True)
-    balance = fields.Float(compute="_compute_balance", string='Số dư (VND)', digits=(10, 2), default=0.0)
+    balance = fields.Float(compute="_compute_balance", string='Số dư (VND)', digits=(16, 3), default=0.0)
     play_time_total = fields.Float('Thời gian chơi (giờ)', default=0.0)
-    total_spent = fields.Float(string="Tổng chi tiêu (VND)", digits=(10, 2), default=0.0)
-    total_recharge = fields.Float(string="Tổng nạp (VND)", digits=(10, 2), default=0.0)
+    total_spent = fields.Float(string="Tổng chi tiêu (VND)", digits=(16, 3), default=0.0)
+    total_recharge = fields.Float(string="Tổng nạp (VND)", digits=(16, 3), default=0.0)
     last_session_end = fields.Datetime(string="Thời gian chơi gần nhất")
     last_topup_date = fields.Datetime(string="Thời gian nạp tiền gần nhất")
     last_spend_date = fields.Datetime(string="Thời gian chi tiêu gần nhất")
@@ -33,7 +33,7 @@ class CyberAccount(models.Model):
     @api.depends('total_recharge', 'total_spent')
     def _compute_balance(self):
         for account in self:
-            account.balance = account.total_recharge - account.total_spent
+            account.balance = round(account.total_recharge - account.total_spent, 3)
 
     def update_last_dates(self):
         for rec in self:

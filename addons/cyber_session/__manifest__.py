@@ -11,8 +11,13 @@
         'views/cyber_session_views.xml',
         'views/cyber_sale_order_in_session_views.xml',
         'views/menus.xml',
-        'data/cron_close_sessions.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'cyber_session/static/src/js/countdown_widget.js',
+            'cyber_session/static/src/xml/countdown_widget.xml',
+        ],
+    },
     'installable': True,
     'application': True,
 }
