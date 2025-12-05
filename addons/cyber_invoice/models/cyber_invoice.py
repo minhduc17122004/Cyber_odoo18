@@ -108,7 +108,7 @@ class CyberInvoice(models.Model):
                 'product_id': session.product_machine_id.id,
                 'quantity': session.duration,
                 'price_unit': session.price_per_hour,
-                'name': _("Machine: %s (%.2f hours)") % (session.product_machine_id.name, session.duration),
+                'name': _("Machine: %s (%.6f hours)") % (session.product_machine_id.name, session.duration),
                 'payment_method': 'account',
             }))
 
@@ -209,7 +209,11 @@ class CyberInvoice(models.Model):
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
-
+    # Override quantity để có 6 chữ số thập phân cho service
+    quantity = fields.Float(
+        digits=(16, 6),
+        string='Quantity'
+    )
 
     payment_method = fields.Selection(
         [
@@ -220,6 +224,7 @@ class AccountMoveLine(models.Model):
         string="Phương thức thanh toán",
         default="cash",
         store=True
+    )
   
 
 class AccountPaymentRegister(models.TransientModel):
@@ -246,9 +251,9 @@ class AccountPaymentRegister(models.TransientModel):
                     invoice.account_id.total_spent = round(invoice.account_id.total_spent + account_spent, 3)
                     invoice.account_id.update_last_dates()
 
-
-
-                    invoice.account_id.play_time_total += invoice.duration
+                    # Lấy duration từ session_id nếu có
+                    if invoice.session_id:
+                        invoice.account_id.play_time_total += invoice.session_id.duration
 
 
                 # Cộng cho customer
