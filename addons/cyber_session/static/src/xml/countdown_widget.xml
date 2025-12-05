@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="cyber_session.CountdownWidget">
+        <div class="o_field_countdown_timer">
+            <span class="text-danger fw-bold">
+                <t t-esc="state.countdown"/>
+            </span>
+        </div>
+    </t>
+</templates>

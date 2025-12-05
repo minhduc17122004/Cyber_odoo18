@@ -210,6 +210,7 @@ class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
 
+
     payment_method = fields.Selection(
         [
             ("account", "Account"),
@@ -242,7 +243,7 @@ class AccountPaymentRegister(models.TransientModel):
 
                 # Cộng cho account nếu có
                 if invoice.account_id and account_spent > 0:
-                    invoice.account_id.total_spent += account_spent
+                    invoice.account_id.total_spent = round(invoice.account_id.total_spent + account_spent, 3)
                     invoice.account_id.update_last_dates()
 
 
@@ -252,7 +253,7 @@ class AccountPaymentRegister(models.TransientModel):
 
                 # Cộng cho customer
                 if invoice.partner_id:
-                    invoice.partner_id.total_spent += payment.amount
+                    invoice.partner_id.total_spent = round(invoice.partner_id.total_spent + payment.amount, 3)
 
 
 

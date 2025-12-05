@@ -28,24 +28,20 @@
                             <field name="account_id" string="Tài khoản"/>
                             <field name="product_machine_id" string="Máy"/>
                             <field name="price_per_hour"/>
-                            <field name="total_service" readonly="1" widget="monetary" string="Tổng dịch vụ (VND)"/>
-                            <field name="total_order" readonly="1" widget="monetary" string="Tổng đơn hàng (VND)"/>
-                            <field name="total_sale" readonly="1" widget="monetary" string="Tổng cộng (VND)" class="oe_subtotal_footer_separator"/>
+                            <field name="total_service" readonly="1" widget="float" options="{'precision': 3}" string="Tổng dịch vụ (VND)"/>
+                            <field name="total_order" readonly="1" widget="float" options="{'precision': 3}" string="Tổng đơn hàng (VND)"/>
+                            <field name="total_sale" readonly="1" widget="float" options="{'precision': 3}" string="Tổng cộng (VND)" class="oe_subtotal_footer_separator"/>
                             <field name="has_incomplete_orders" invisible="1"/>
                         </group>
                         <group>
                             <field name="start_time" string="Thời gian bắt đầu" invisible="session_state == 'draft'"/>
                             <field name="end_time" string="Thời gian kết thúc" invisible="session_state != 'closed'"/>
-                            <field name="end_time_expected" 
-                                   string="Thời gian đóng phiên dự kiến" 
-                                   readonly="1"
-                                   widget="datetime"
-                                   invisible="session_state != 'running'"/>
-                            <field name="duration" readonly="1" string="Thời lượng (giờ)"/>
-                            <field name="time_remaining" 
+                            <field name="duration" readonly="1" widget="float" options="{'precision': 16}" string="Thời lượng (giờ)" invisible="session_state != 'closed'"/>
+                            <field name="end_time_expected" invisible="1"/>
+                            <field name="time_remaining_display" 
                                    string="Thời gian còn lại" 
+                                   widget="countdown_timer"
                                    readonly="1"
-                                   widget="float_time"
                                    invisible="session_state != 'running'"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
@@ -91,15 +87,12 @@
                 <field name="account_id" string="Tài khoản"/>
                 <field name="product_machine_id" string="Máy"/>
                 <field name="start_time" string="Thời gian bắt đầu"/>
-                <field name="end_time_expected" 
-                       string="Đóng phiên dự kiến"
-                       widget="datetime"
-                       optional="show"/>
+                <field name="end_time" string="Thời gian kết thúc" optional="show"/>
                 <field name="duration" string="Thời lượng (giờ)"/>
-                <field name="time_remaining" 
+                <field name="time_remaining_display" 
                        string="Thời gian còn lại" 
-                       widget="float_time"
-                       optional="show"/>
+                       widget="countdown_timer"
+                       optional="hide"/>
                 <field name="total_service" string="Tổng dịch vụ" optional="show"/>
                 <field name="total_order" string="Tổng đơn hàng" optional="show"/>
                 <field name="total_sale" string="Tổng cộng"/>
