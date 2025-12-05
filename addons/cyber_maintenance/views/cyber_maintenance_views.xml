@@ -30,16 +30,15 @@
             </xpath>
 
             <xpath expr="//page[.//field[@name='description']]" position="before">
-                <page string="Chi phí liên quan">
-                    <field name="expense_ids">
-                        <list editable="bottom">
-                            <field name="name"/>
-                            <field name="amount"/>
-                            <field name="date"/>
-                            <field name="description"/>
-                            <field name="state"/>
-                        </list>
-                    </field>
+                <page string="Chi phí sửa chữa">
+                    <field name="expense_ids"/>
+                </page>
+            </xpath>
+            <xpath expr="//page[.//field[@name='expense_ids']]" position="before">
+                <page string="Chi tiết linh kiện">
+                    <group>
+                        <field name="cyber_component_id" widget="many2many_tags" options="{'no_create': True}"/>
+                    </group>
                 </page>
             </xpath>
         </field>

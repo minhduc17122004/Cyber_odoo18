@@ -196,9 +196,9 @@ class CyberInvoice(models.Model):
                     'session_id': rec.session_id.id if rec.session_id else False,
                 })
 
-
         res = super(CyberInvoice, self).action_post()  
         return res
+
         
     def action_draft(self):
         """
@@ -219,16 +219,13 @@ class AccountMoveLine(models.Model):
         string="Phương thức thanh toán",
         default="cash",
         store=True
-    )
-
+  
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'
 
-
     def _create_payments(self):
         payments = super()._create_payments()
-
 
         for payment in payments:
             moves = payment.reconciled_invoice_ids  # các hóa đơn được thanh toán bởi payment
@@ -242,15 +239,21 @@ class AccountPaymentRegister(models.TransientModel):
                         account_spent += line.price_subtotal
 
 
+
                 # Cộng cho account nếu có
                 if invoice.account_id and account_spent > 0:
                     invoice.account_id.total_spent += account_spent
                     invoice.account_id.update_last_dates()
 
 
+
+                    invoice.account_id.play_time_total += invoice.duration
+
+
                 # Cộng cho customer
                 if invoice.partner_id:
                     invoice.partner_id.total_spent += payment.amount
+
 
 
         return payments
@@ -260,4 +263,7 @@ class AccountPaymentRegister(models.TransientModel):
 
 
 
+
+
+        
 
