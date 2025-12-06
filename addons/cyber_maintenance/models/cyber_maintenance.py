@@ -23,7 +23,6 @@ class CyberMaintenanceRequest(models.Model):
         string="Chi phí liên quan"
     )
 
-    @api.depends('stage_id')
     def _update_machine_status_based_on_stage(self):
         for rec in self:
             if rec.cyber_machine_id:
@@ -44,3 +43,9 @@ class CyberMaintenanceRequest(models.Model):
         if 'stage_id' in vals:
             self._update_machine_status_based_on_stage()
         return res
+    
+    def unlink(self):
+        for rec in self:
+            if rec.cyber_machine_id:
+                rec.cyber_machine_id.write({'machine_status': 'active'})
+        return super().unlink()

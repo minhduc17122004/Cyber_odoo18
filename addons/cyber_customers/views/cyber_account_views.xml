@@ -23,7 +23,7 @@
                                     <field name="balance" readonly="1"/>
                                     <field name="total_recharge" readonly="1"/>
                                     <field name="total_spent" readonly="1"/>
-                                    <field name="play_time_total" readonly="1"/>
+                                    <field name="play_time_total"/>
                                 </group>
                             </page>
 
